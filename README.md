@@ -1,146 +1,216 @@
 # CRATE Backend
 
-지원서/설문지 양식 제공 + **평가/선발**까지 한 번에 처리하는 플랫폼 (Google Forms 대체 + 평가/권한/분배 중심).
+지원서/설문지 양식 제공 + **평가/선발**까지 한 번에 처리하는 플랫폼
+(Google Forms 대체 + 평가/권한/분배 중심)
 
 ---
 
 ## 📌 Overview
 
-### 서비스명
-- **CRATE**
+### Service
 
-### 한 줄 소개
-- 지원서·설문지 양식 제공 및 **종합 평가·선발** 플랫폼
+* **CRATE**
 
-### 타겟 사용자
-- 대학 동아리/학회 운영진
-- 스타트업 채용 담당자
-- 행사/공모전 운영자
-- 소규모 팀 선발 담당자
+### Description
 
-### 개발 배경
-기존 양식 도구는 “수집”에 최적화되어 있으나, 실제 모집 프로세스의 핵심은 “평가/선발”이다.  
-CRATE는 **수집 → 평가 → 선발**을 한 플랫폼에서 처리하도록 설계한다.
+* 지원서·설문지 양식을 생성하고
+* 응답 수집 이후 **평가 및 선발**까지 처리하는 백엔드 시스템
 
----
+### Key Focus
 
-## 🎯 Core Value
-
-1. **수집보다 선발에 집중**
-   - 질문/항목 단위 평가(점수, 태그 등) 기반 UX
-   - 선착순/추첨 등 다양한 선발 방식 지원(확장 예정)
-
-2. **팀 협업을 위한 평가 시스템**
-   - 평가 분배(자동/수동)와 권한 관리
-   - 진행률 추적 및 공유(확장 예정)
-
-3. **불필요한 기능 제거**
-   - 복잡한 분석 도구 제외
-   - 누구나 5분 내 이해 가능한 단순함 지향
+* 평가 중심 구조
+* 팀원 공유 및 문항 단위 권한
+* 서버 강제 권한 검증
+* 토큰 기반 외부 응답(public link)
 
 ---
 
 ## 🧱 Tech Stack
 
-- **NestJS + TypeScript**
-- **PostgreSQL**
-- **Prisma ORM**
-- Local Dev DB: **Docker(Postgres)**
+* **NestJS + TypeScript**
+* **PostgreSQL**
+* **Prisma ORM**
+* **JWT (passport-jwt)**
+* **Docker (Postgres, WSL 기반)**
 
 ---
 
-## 🏗️ Architecture
+## 🧩 Development Environment
 
-- 도메인 기준 모듈 구조
-- Controller / Service / (Repository는 필요 시 도입)
-- 권한 검증은 **서버에서 강제**
-- 외부 응답은 **토큰 기반(public link)**
+### Local Setup Summary
 
-### Directory Structure (current)
+* **OS**
+
+  * Windows 10/11
+  * WSL2 (Ubuntu)
+
+* **Runtime**
+
+  * Node.js (LTS)
+  * NestJS
+
+* **Database**
+
+  * PostgreSQL (Docker, WSL)
+  * docker-compose로 관리
+
+* **ORM**
+
+  * Prisma ORM
+  * Prisma Client 자동 생성 사용
+
+---
+
+### ⚠️ Windows + WSL 환경 주의사항 (중요)
+
+* PostgreSQL은 **WSL Docker**에서 실행
+* NestJS 서버는 **Windows**에서 실행
+* DB 접근 시 `localhost` 대신 **IPv4 고정 사용**
+
+```env
+DATABASE_URL=postgresql://crate:crate@127.0.0.1:5432/crate
+```
+
+> `localhost` 사용 시
+> Windows → IPv6(`::1`) 우선 접근으로 인해
+> Postgres 인증 실패(P1000) 발생 가능
+
+---
+
+## 🐘 PostgreSQL (Docker)
+
+### docker-compose.yml (Postgres)
+
+```yml
+services:
+  postgres:
+    image: postgres:16
+    container_name: crate-postgres
+    environment:
+      POSTGRES_USER: crate
+      POSTGRES_PASSWORD: crate
+      POSTGRES_DB: crate
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+```
+
+* Postgres 단일 유저: `crate`
+* 기본 `postgres` 유저는 생성되지 않음 (정상 동작)
+* 계정 변경 시 반드시 `docker compose down -v` 필요
+
+---
+
+## 🧬 Prisma
+
+### Current Schema
+
+```prisma
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password_hash String
+  name          String?
+  created_at    DateTime @default(now())
+}
+```
+
+### Migration Status
+
+* `init_user` migration 적용 완료
+* Prisma Client 생성 완료
+* DB ↔ schema 동기화 완료
+
+---
+
+## 🔐 Authentication (Auth)
+
+### Implemented Features
+
+* 회원가입 (Signup)
+* 로그인 (Login)
+* JWT 기반 인증
+* 인증 확인 API (`/auth/me`)
+
+### Auth Flow
+
+1. **Signup**
+
+   * 이메일 중복 체크
+   * bcrypt 비밀번호 해시
+   * users 테이블 저장
+
+2. **Login**
+
+   * 이메일 + 비밀번호 검증
+   * JWT 발급 (`payload.sub = user.id`)
+
+3. **Authenticated Request**
+
+   * `Authorization: Bearer <token>`
+   * JwtStrategy에서 user 조회
+   * `req.user` 주입
+
+---
+
+## 📂 Project Structure
+
 ```txt
 src
  ├─ app.module.ts
+
  ├─ common
- │   ├─ guards
- │   ├─ interceptors
- │   ├─ filters
- │   ├─ decorators
- │   ├─ errors
- │   └─ types
- ├─ auth
+ │   └─ prisma
+ │       ├─ prisma.module.ts
+ │       └─ prisma.service.ts
+
  ├─ users
- ├─ forms
- ├─ questions
- ├─ permissions
- ├─ public-links
- └─ responses
-````
+ │   ├─ users.module.ts
+ │   └─ users.service.ts
 
----
+ ├─ auth
+ │   ├─ auth.module.ts
+ │   ├─ auth.controller.ts
+ │   ├─ auth.service.ts
+ │   ├─ guards
+ │   │   └─ jwt-auth.guard.ts
+ │   └─ strategies
+ │       └─ jwt.strategy.ts
 
-## ✅ Current Progress
-
-### EPIC 1. 개발 환경 & 프로젝트 초기 세팅 ✅
-
-#### STORY 1-1. NestJS 프로젝트 초기화 ✅
-
-* NestJS 프로젝트 생성 ✅
-* 기본 디렉토리 구조 정리(module/controller/service) ✅
-* eslint / prettier 설정 ✅
-* env 분리(dev/local) ✅ *(현재는 `.env` 중심으로 통일하여 사용)*
-
-#### STORY 1-2. DB/ORM 세팅 ✅(로컬 기준)
-
-* PostgreSQL 클라우드 인스턴스 생성 ⏳ *(아직 진행 전)*
-* Prisma 설치 및 초기화 ✅
-* Prisma schema 기본 구조 작성 ✅
-* 로컬 Docker로 postgres 연결 ✅
-* Prisma migrate 성공 ✅ (`init_user`, User 모델)
-
----
-
-## 🚀 Getting Started (Local)
-
-### 1) Prerequisites
-
-* Node.js (LTS 권장)
-* Docker Engine (예: WSL2 Ubuntu에 Docker Engine 직접 설치) 또는 Docker Desktop
-* PostgreSQL는 **로컬 설치 불필요** (Docker로 사용)
-
-### 2) Environment
-
-루트에 `.env` 준비:
-
-```env
-NODE_ENV=local
-PORT=3000
-
-DATABASE_URL=postgresql://crate:crate@localhost:5432/crate
-JWT_SECRET=local-secret
+prisma
+ └─ schema.prisma
 ```
 
-### 3) Run PostgreSQL (Docker)
+### Architectural Notes
 
-루트의 `docker-compose.yml` 사용:
+* 기능 기준(feature-based) 모듈 구조
+* Prisma 사용 → entity 폴더 없음
+* auth = 인증 로직 전용 (테이블 소유 ❌)
+* users = 유저 데이터 접근 전용
+* 권한 검증은 Guard + Strategy 기반
+
+---
+
+## ▶️ How to Run (Local)
+
+### 1) PostgreSQL (WSL)
 
 ```bash
 docker compose up -d
-docker ps
 ```
 
-### 4) Install Dependencies
+### 2) Prisma (WSL에서 실행 권장)
 
 ```bash
-npm install
-```
-
-### 5) Prisma (migrate)
-
-```bash
+npx prisma generate
 npx prisma migrate dev --name init_user
 ```
 
-### 6) Start API Server
+### 3) API Server (Windows)
 
 ```bash
 npm run start:dev
@@ -148,149 +218,178 @@ npm run start:dev
 
 ---
 
-## 🧬 Prisma
+## 🧪 API Test (Postman)
 
-* Schema: `prisma/schema.prisma`
-* Migrations: `prisma/migrations/*`
+### Signup
 
-### Prisma Studio (optional)
-
-```bash
-npx prisma studio
 ```
+POST /auth/signup
+```
+
+### Login
+
+```
+POST /auth/login
+```
+
+### Auth Check
+
+```
+GET /auth/me
+Authorization: Bearer <accessToken>
+```
+
+---
+
+## ✅ Current Progress
+
+* ✅ 프로젝트 초기 세팅
+* ✅ PostgreSQL (Docker + WSL) 연동
+* ✅ Prisma 설정 및 migration
+* ✅ Auth 도메인 구현
+
+  * 회원가입 / 로그인
+  * JWT 인증 파이프라인
+* ✅ Windows ↔ WSL 환경 이슈 해결
+* ✅ Postman 테스트 완료
+
+---
+
+## 🚧 Next Steps
+
+### Form 도메인 시작
+
+* forms 테이블 설계
+* Form 생성 API
+* `owner_id = req.user.id`
+
+### 이후 확장 예정
+
+* Question / Option
+* 팀원 공유 (form_members)
+* 문항 단위 권한
+* Public link 기반 외부 응답
+* Response / Answer 구조
 
 ---
 
 ## 🗺️ Roadmap
 
-## 🔐 EPIC 2. 인증(Auth) 기반 구축 ❎
+2. 인증(Auth) 기반 구축 ✅
 
-### STORY 2-1. 사용자 모델 구현
+3. Form / Question 도메인 ❎
 
-* Task: users 테이블 설계 및 마이그레이션
-* Task: User Model 정의 (확장)
-* Task: 비밀번호 해시 처리
+- STORY 3-1. Form 관리
 
-### STORY 2-2. 인증 API
+   * Task: Form 테이블/ERD 반영
+   * Task: Form 생성 API
+   * Task: Form 목록 조회 API
+   * Task: Form 상세 조회 API
+   * Task: Form 수정/삭제 API
 
-* Task: 회원가입 API
-* Task: 로그인 API
-* Task: JWT 발급 로직
-* Task: 인증 Guard 적용
-* Task: `/me` API 구현
+- STORY 3-2. Question 관리
 
----
-
-## 📝 EPIC 3. Form / Question 도메인 ❎
-
-### STORY 3-1. Form 관리
-
-* Task: Form 테이블/ERD 반영
-* Task: Form 생성 API
-* Task: Form 목록 조회 API
-* Task: Form 상세 조회 API
-* Task: Form 수정/삭제 API
-
-### STORY 3-2. Question 관리
-
-* Task: Question / Option 테이블 설계
-* Task: 문항 생성 API
-* Task: 문항 조회 API
-* Task: 문항 수정 API
-* Task: 문항 삭제 API
-* Task: 문항 order_index 정렬 API
+   * Task: Question / Option 테이블 설계
+   * Task: 문항 생성 API
+   * Task: 문항 조회 API
+   * Task: 문항 수정 API
+   * Task: 문항 삭제 API
+   * Task: 문항 order_index 정렬 API
 
 ---
 
-## 👥 EPIC 4. 팀원 공유 & 권한 시스템(핵심) ❎
+4. 팀원 공유 & 권한 시스템(핵심) ❎
 
-### STORY 4-1. Form Member 관리
+- STORY 4-1. Form Member 관리
 
-* Task: form_members 테이블 구현
-* Task: 팀원 초대 API
-* Task: 팀원 목록 조회 API
-* Task: 팀원 role 변경 API
-* Task: 팀원 제거 API
+   * Task: form_members 테이블 구현
+   * Task: 팀원 초대 API
+   * Task: 팀원 목록 조회 API
+   * Task: 팀원 role 변경 API
+   * Task: 팀원 제거 API
 
-### STORY 4-2. 문항 단위 권한
+- STORY 4-2. 문항 단위 권한
 
-* Task: form_member_question_permissions 테이블 구현
-* Task: 문항별 조회/수정 권한 저장 API
-* Task: 권한 체크 Service 구현
-* Task: 응답 조회 시 권한 필터링 로직 구현
-
----
-
-## 🌍 EPIC 5. Public Form (토큰 기반 응답) ❎
-
-### STORY 5-1. Public Link 관리
-
-* Task: form_public_links 테이블 구현
-* Task: 토큰 생성 로직
-* Task: public link 생성 API
-* Task: public link 비활성화/만료 처리
-
-### STORY 5-2. 외부 응답 플로우
-
-* Task: 토큰 기반 폼 조회 API (응답용)
-* Task: Response/Answer 저장 로직
-* Task: 외부 응답 제출 API
-* Task: rate limit 적용
+   * Task: form_member_question_permissions 테이블 구현
+   * Task: 문항별 조회/수정 권한 저장 API
+   * Task: 권한 체크 Service 구현
+   * Task: 응답 조회 시 권한 필터링 로직 구현
 
 ---
 
-## 📊 EPIC 6. Response 조회 & 관리 ❎
+5. Public Form (토큰 기반 응답) ❎
 
-### STORY 6-1. 응답 저장 구조
+- STORY 5-1. Public Link 관리
 
-* Task: responses / answers 테이블 구현
-* Task: 응답 저장 트랜잭션 처리
+   * Task: form_public_links 테이블 구현
+   * Task: 토큰 생성 로직
+   * Task: public link 생성 API
+   * Task: public link 비활성화/만료 처리
 
-### STORY 6-2. 응답 조회
+- STORY 5-2. 외부 응답 플로우
 
-* Task: 응답 목록 조회 API (pagination)
-* Task: 응답 상세 조회 API
-* Task: 문항 권한 기반 답안 필터링
-
----
-
-## ⚙️ EPIC 7. 운영/안정성 ❎
-
-### STORY 7-1. 보안
-
-* Task: public token hash 저장
-* Task: 민감 데이터 로그 제거
-* Task: validation pipe 전역 적용
-
-### STORY 7-2. 성능/확장 대비
-
-* Task: 주요 인덱스 설계
-* Task: Redis 도입 검토
-* Task: 대량 작업용 queue 구조 스캐폴딩
+   * Task: 토큰 기반 폼 조회 API (응답용)
+   * Task: Response/Answer 저장 로직
+   * Task: 외부 응답 제출 API
+   * Task: rate limit 적용
 
 ---
 
-## 📚 EPIC 8. 개인 학습(NestJS 적응용) ❎
+6. Response 조회 & 관리 ❎
 
-### STORY 8-1. Nest 기본
+- STORY 6-1. 응답 저장 구조
 
-* Task: Module/DI 구조 정리 문서화
-* Task: Controller-Service 책임 분리 연습
+   * Task: responses / answers 테이블 구현
+   * Task: 응답 저장 트랜잭션 처리
 
-### STORY 8-2. 심화
+- STORY 6-2. 응답 조회
 
-* Task: Guard / Interceptor 실습
-* Task: Prisma relation 쿼리 연습
-* Task: 권한 체크 공통화 리팩토링
+   * Task: 응답 목록 조회 API (pagination)
+   * Task: 응답 상세 조회 API
+   * Task: 문항 권한 기반 답안 필터링
+
+---
+
+7. 운영/안정성 ❎
+
+- STORY 7-1. 보안
+
+   * Task: public token hash 저장
+   * Task: 민감 데이터 로그 제거
+   * Task: validation pipe 전역 적용
+
+- STORY 7-2. 성능/확장 대비
+
+   * Task: 주요 인덱스 설계
+   * Task: Redis 도입 검토
+   * Task: 대량 작업용 queue 구조 스캐폴딩
+
+---
+
+8. 개인 학습(NestJS 적응용) ❎
+
+- STORY 8-1. Nest 기본
+
+   * Task: Module/DI 구조 정리 문서화
+   * Task: Controller-Service 책임 분리 연습
+
+- STORY 8-2. 심화
+
+   * Task: Guard / Interceptor 실습
+   * Task: Prisma relation 쿼리 연습
+   * Task: 권한 체크 공통화 리팩토링
 
 ---
 
 ## 📎 Notes
 
-* 로컬 개발 DB는 Docker(Postgres) 사용을 기본으로 한다.
-* 클라우드 Postgres(dev/prod)는 `DATABASE_URL`만 분리하여 동일한 코드로 운영한다.
-* 권한 검증은 서버에서 강제하며, 외부 응답은 토큰 기반으로 접근을 제한한다.
+* Prisma migrate / generate는 **WSL에서 실행 권장**
+* Postgres 계정 변경 시 볼륨 삭제 필수
+* 인증/권한 검증은 항상 서버에서 강제
 
----
+
+
+
+
 
 
