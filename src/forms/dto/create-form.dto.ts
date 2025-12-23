@@ -1,0 +1,11 @@
+import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
+
+export class CreateFormDto {
+    @IsString()
+    @IsNotEmpty()
+    title: string;
+
+    @IsString()
+    @IsOptional()
+    description?: string;
+}

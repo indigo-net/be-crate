@@ -13,5 +13,20 @@ model User {
   password_hash String
   name          String?
   created_at    DateTime @default(now())
+
+  forms Form[]
 }
 
+model Form {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  owner_id    String
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  owner User @relation(fields: [owner_id], references: [id])
+
+  @@index([owner_id])
+}

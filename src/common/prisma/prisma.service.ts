@@ -7,7 +7,9 @@ export class PrismaService
     implements OnModuleInit, OnModuleDestroy {
     // 앱 시작 시 DB 연결
     async onModuleInit() {
+        console.log('🟡 Prisma init start');
         await this.$connect();
+        console.log('🟢 Prisma connected');
     }
 
     // 앱 종료 시 DB 연결 해제
