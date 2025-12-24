@@ -1,10 +1,25 @@
-import { Controller, Post, Body, UseGuards, Req, Get, NotFoundException, Param, Patch, Delete } from "@nestjs/common";
-import { JwtAuthGuard } from "@/auth/guards/jwt-auth.guard";
-import { FormsService } from "@/forms/forms.service";
-import { CreateFormDto } from "@/forms/dto/create-form.dto";
-import { UpdateFormDto } from "@/forms/dto/update-form.dto";
+import {
+    Controller,
+    Post,
+    Get,
+    Patch,
+    Delete,
+    Param,
+    Body,
+    Req,
+    UseGuards,
+    NotFoundException,
+} from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
+
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { FormsService } from '@/forms/forms.service';
+
+import { CreateFormDto } from '@/forms/dto/create-form.dto';
+import { UpdateFormDto } from '@/forms/dto/update-form.dto';
 
 
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard) // 모두 토큰을 넘기므로 내가 만든 폼 / 내가 만든 폼 조회
 @Controller('forms')
 export class FormsController {
@@ -25,7 +40,7 @@ export class FormsController {
 
     // 단건 조회
     @Get(':id')
-    async findOne(@Req() req, @Param('id') id: string) {
+    async findOne(@Req() req: Request & { user: { id: string } }, @Param('id') id: string) {
         const form = await this.formsService.findOne(req.user.id, id);
         if (!form) throw new NotFoundException('Form not found');
         return form;
@@ -34,7 +49,7 @@ export class FormsController {
     // 수정
     @Patch(':id')
     async update(
-        @Req() req,
+        @Req() req: Request & { user: { id: string } },
         @Param('id') id: string,
         @Body() dto: UpdateFormDto,
     ) {
@@ -45,7 +60,7 @@ export class FormsController {
 
     // 삭제 (soft delete)
     @Delete(':id')
-    async remove(@Req() req, @Param('id') id: string) {
+    async remove(@Req() req: Request & { user: { id: string } }, @Param('id') id: string) {
         const result = await this.formsService.remove(req.user.id, id);
         if (result.count === 0) throw new NotFoundException('Form not found');
         return { success: true };

@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+
 import { UsersService } from '@/users/users.service';
 
 // JWT payload에 들어오는 최소 데이터 형태
@@ -32,6 +33,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // 토큰 검증이 끝난 뒤 호출됨
     // 여기서 반환한 값이 req.user로 주입된다
     async validate(payload: JwtPayload) {
+        // 로그 확인용
+        console.log('JWT payload:', payload);
         // payload.sub = user.id
         const user = await this.usersService.findById(payload.sub);
 
