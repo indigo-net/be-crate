@@ -26,7 +26,31 @@ model Form {
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
-  owner User @relation(fields: [owner_id], references: [id])
+  owner     User       @relation(fields: [owner_id], references: [id])
+  questions Question[]
 
   @@index([owner_id])
+}
+
+enum QuestionType {
+  SHORT_TEXT
+  LONG_TEXT
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+}
+
+model Question {
+  id          String       @id @default(uuid())
+  form_id     String
+  title       String
+  type        QuestionType
+  is_required Boolean      @default(false)
+  order_index Int
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @updatedAt
+
+  form Form @relation(fields: [form_id], references: [id])
+
+  @@unique([form_id, order_index])
+  @@index([form_id])
 }
