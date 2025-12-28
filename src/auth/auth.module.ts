@@ -2,16 +2,19 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
 
 import { AuthController } from '@/auth/auth.controller';
 import { AuthService } from '@/auth/auth.service';
 import { JwtStrategy } from '@/auth/strategies/jwt.strategy';
 
+import { RefreshTokenService } from '@/auth/refresh-token.service';
 import { UsersModule } from '@/users/users.module';
 
 
 @Module({
     imports: [
+        HttpModule,
         UsersModule,
         PassportModule,
         ConfigModule, // isGlobal 아니면 필수
@@ -24,8 +27,9 @@ import { UsersModule } from '@/users/users.module';
                 signOptions: { expiresIn: '1d' },
             }),
         }),
+
     ],
     controllers: [AuthController],
-    providers: [AuthService, JwtStrategy],
+    providers: [AuthService, JwtStrategy, RefreshTokenService],
 })
 export class AuthModule { }

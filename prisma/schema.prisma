@@ -8,14 +8,41 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  password_hash String
-  name          String?
-  created_at    DateTime @default(now())
+  id           String        @id @default(uuid())
+  email        String?       @unique
+  passwordHash String?
+  name         String?
+  provider     AuthProvider  @default(LOCAL)
+  providerId   String?
+  createdAt    DateTime      @default(now())
 
-  forms Form[]
+  forms         Form[]
+  refreshTokens RefreshToken[]
+
+  @@unique([provider, providerId])
 }
+
+
+enum AuthProvider {
+  LOCAL
+  KAKAO
+  GOOGLE
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+
 
 model Form {
   id          String   @id @default(uuid())
