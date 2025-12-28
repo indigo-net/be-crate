@@ -49,8 +49,23 @@ model Question {
   created_at  DateTime     @default(now())
   updated_at  DateTime     @updatedAt
 
-  form Form @relation(fields: [form_id], references: [id])
+  form    Form             @relation(fields: [form_id], references: [id])
+  options QuestionOption[]
 
   @@unique([form_id, order_index])
   @@index([form_id])
+}
+
+model QuestionOption {
+  id          String   @id @default(uuid())
+  question_id String
+  label       String
+  value       String?
+  order_index Int
+  created_at  DateTime @default(now())
+
+  question Question @relation(fields: [question_id], references: [id])
+
+  @@unique([question_id, order_index])
+  @@index([question_id])
 }
