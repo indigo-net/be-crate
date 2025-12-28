@@ -8,14 +8,26 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  password_hash String
-  name          String?
-  created_at    DateTime @default(now())
+  id           String        @id @default(uuid())
+  email        String?       @unique
+  passwordHash String?
+  name         String?
+  provider     AuthProvider  @default(LOCAL)
+  providerId   String?
+  createdAt    DateTime      @default(now())
 
   forms Form[]
+
+  @@unique([provider, providerId])
 }
+
+
+enum AuthProvider {
+  LOCAL
+  KAKAO
+  GOOGLE
+}
+
 
 model Form {
   id          String   @id @default(uuid())
