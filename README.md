@@ -1,234 +1,122 @@
 # 📦 CRATE Backend (Dev README)
 
-지원서/설문지 양식 제공 + **평가/선발**까지 한 번에 처리하는 플랫폼
-(Google Forms 대체 + 평가/권한/분배 중심)
+> **개발 진행용 README**
+> 실무 기준 구조/흐름 정리 문서이며, 포트폴리오용이 아님
 
 ---
 
-## 1. 프로젝트 개요 (개발 관점)
+## 1. 프로젝트 개요
 
-- 서비스명: **CRATE**
-- 성격: 평가·선발 중심 폼 관리 시스템
-- 핵심 컨셉:
-  - Form → Question → (Option) → Response → Evaluation
-  - 권한은 서버에서 강제
-  - MVP 우선, 확장 가능 구조 유지
+* 서비스명: **CRATE**
+* 성격: **지원서 · 설문 폼 + 평가/선발 플랫폼**
+* 포지션: Google Forms 대체 + 평가/권한/분배 중심
+
+### 핵심 컨셉
+
+* Form → Question → Option → Response → Evaluation
+* 모든 권한 검증은 **서버에서 강제**
+* MVP → 확장 전제 구조
 
 ---
 
 ## 2. 기술 스택
 
-- **NestJS + TypeScript**
-- **PostgreSQL**
-  - 로컬: Docker
-  - 운영: Managed DB 예정
-- **Prisma ORM**
-- **JWT (passport-jwt)**
-- **Swagger** (개발 중 테스트용)
+* Framework: **NestJS (TypeScript)**
+* DB: **PostgreSQL**
+* ORM: **Prisma**
+* Auth: **JWT + RefreshToken + httpOnly Cookie**
+* Infra: 로컬 개발 기준
 
 ---
 
-## 3. 현재 디렉토리 구조
+## 3. 아키텍처 원칙
 
-```txt
-src/
- ├─ auth            # 인증 (완료)
- ├─ users           # 사용자 (완료)
- ├─ forms           # 폼 (완료)
- ├─ questions       # 질문 (완료)
- ├─ public-links    # 외부 응답 링크 (미구현)
- ├─ responses       # 응답 데이터 (미구현)
- ├─ permissions     # 권한/역할 (미구현)
- ├─ common
- │   ├─ prisma
- │   └─ guards
- └─ app.module.ts
-````
+### 3.1 모듈 구조
 
-> Prisma 사용 → Entity 레이어 없음
-> 도메인 기준 모듈 구조 유지 중
+* 도메인 기준 모듈 분리
+* Controller / Service / Repository(Prisma) 분리
+
+### 3.2 설계 기준
+
+* CRUD보다 **데이터 흐름 우선**
+* Controller는 요청 분해만 담당
+* 비즈니스 로직 · 권한 검증은 **Service 레벨**
+* 순서 변경, 일괄 처리 → **트랜잭션 필수**
 
 ---
 
-## 4. 구현 완료 상태 요약 (중요)
+## 4. 현재 구현 상태 (2025-12 기준)
 
-### ✅ Auth
+### ✅ Auth 도메인 (3차 완료)
 
-* 회원가입 / 로그인
-* JWT 발급
+#### 기능
+
+* LOCAL 로그인 (email + password)
+* KAKAO OAuth 로그인
+* access / refresh 토큰 분리
+* refresh token DB 저장 (해시)
+* refresh token rotation
+* httpOnly 쿠키 기반 인증
+* 쿠키 기반 JwtStrategy
+
+#### 엔드포인트
+
+* `POST /auth/signup`
+* `POST /auth/login`
+* `POST /auth/kakao`
+* `POST /auth/refresh`
+* `POST /auth/logout`
 * `GET /auth/me`
-* JwtStrategy + JwtAuthGuard 정상 동작
-* Swagger BearerAuth 연동 완료
 
-### ✅ Users
+#### 인증 흐름 요약
 
-* 사용자 조회 (email / id)
-* Auth에서만 사용
-* 별도 공개 API 없음
-
-### ✅ Forms
-
-* Form 생성
-* Form 목록 조회 (owner 기준)
-* Form 단건 조회
-* Form 수정
-* Form 삭제 (soft delete)
-* 모든 접근은 `owner_id = req.user.id` 기준
-
-### ✅ Questions
-
-* Question 생성
-* Question 목록 조회 (order_index ASC)
-* Question 수정
-* Question 삭제
-
-  * 삭제 시 뒤 질문들의 order_index 자동 당김
-* Question 순서 변경 API
-
-  * drag & drop 대응
-  * 트랜잭션 기반
-* QuestionType enum 사용
-
-> **Question 도메인 1차 완료 상태**
+* 로그인 성공 시 access/refresh 토큰을 **httpOnly 쿠키로 발급**
+* access 만료 시 `/auth/refresh` 호출 → 자동 재발급
+* 로그아웃 시 refresh 폐기 + 쿠키 삭제
 
 ---
 
-## 5. 주요 API 구조 정리
+### ✅ Users / Forms / Questions / QuestionOption
 
-### Auth
-
-```txt
-POST   /auth/signup
-POST   /auth/login
-GET    /auth/me        (JWT)
-```
-
-### Forms
-
-```txt
-POST   /forms
-GET    /forms
-GET    /forms/:id
-PATCH  /forms/:id
-DELETE /forms/:id      (soft delete)
-```
-
-### Questions
-
-```txt
-POST   /forms/:formId/questions
-GET    /forms/:formId/questions
-PATCH  /forms/:formId/questions/:id
-DELETE /forms/:formId/questions/:id
-PATCH  /forms/:formId/questions/reorder
-```
+* 기본 CRUD 구현 완료
+* Question 순서(order_index) 관리 포함
 
 ---
 
-## 6. Question 순서 변경 API 메모
+## 5. 아직 하지 않은 것 (의도적 보류)
 
-```
-PATCH /forms/:formId/questions/reorder
-```
-
-Body:
-
-```json
-{
-  "questionIds": [
-    "question-id-1",
-    "question-id-2",
-    "question-id-3"
-  ]
-}
-```
-
-* 배열 순서 = 최종 order_index
-* 서버에서 0부터 재할당
-* `$transaction` 사용
+* 통계 / 집계
+* 평가 점수 계산
+* 캐싱 / 성능 최적화
+* 복잡한 권한 계층
+* 프론트 편의용 API
 
 ---
 
-## 7. Prisma / DB 관련 메모
+## 6. 다음 작업 우선순위
 
-### 로컬 개발
+1. **Response 도메인**
 
-* PostgreSQL은 Docker 컨테이너
-* Prisma migrate 사용
+   * 응답 생성 흐름
+   * 외부 접근(public link) 기준 정의
 
-```bash
-npx prisma migrate dev
-npx prisma generate
-```
+2. **Public Link**
 
-### 주의사항
+   * 토큰 기반 외부 접근
 
-* `docker compose down -v` 실행 시 **데이터 전부 삭제**
-* Docker 컨테이너 내려도 **볼륨 유지하면 데이터 유지**
-* Prisma schema 변경은 항상 migrate 필요
+3. **Permission / Evaluation**
+
+   * 평가자 권한 모델
+   * 평가 대상 범위 제어
 
 ---
 
-## 8. 서버 실행
+## 7. 개발 규칙 요약
 
-### 개발 모드 (권장)
-
-```bash
-npm run start:dev
-```
-
-* 코드 변경 시 자동 반영
-* Swagger 데코레이터 변경 시 가끔 재시작 필요
-
-### Swagger
-
-* `http://localhost:3000/api-docs`
-* 인증 필요한 API는 **Authorize 버튼 필수**
+* 추측 금지, 항상 DB 기준 설명
+* 필요 없는 컬럼/엔드포인트는 보류
+* 구조 → 흐름 → 코드 순서 고정
 
 ---
 
-## 9. 전역 설정 메모
-
-* ValidationPipe 전역 적용
-
-  * whitelist: true
-  * forbidNonWhitelisted: true
-* DTO 없는 요청은 바로 400
-* Swagger 파라미터는 `@ApiParam` 명시 필요
-
----
-
-## 10. 아직 구현 안 한 도메인 (다음 작업 후보)
-
-### ⏳ public-links
-
-* 토큰 기반 외부 응답 링크
-* 인증 없이 접근
-* 서버에서 권한 강제
-
-### ⏳ responses
-
-* 지원서 응답 데이터 저장
-* Question + Option 구조 의존
-* 이후 Evaluation과 연결 예정
-
-### ⏳ permissions
-
-* Form 멤버
-* 역할 기반 접근 제어
-* Question 단위 권한 분리
-
----
-
-⚠️ 이 문서는 개발 진행에 따라 계속 수정될 전제임.
-
-```
-
-
-
-
-
-
-
-
-
+⚠️ 이 문서는 **개발 진행에 따라 계속 갱신됨**
