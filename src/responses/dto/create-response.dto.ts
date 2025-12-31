@@ -1,10 +1,14 @@
+import { IsString, IsOptional, IsArray } from 'class-validator';
 import { CreateResponseAnswerDto } from './create-response-answer.dto';
 
 export class CreateResponseDto {
+    @IsString()
     formId: string;
 
-    // 외부 응답용
+    @IsOptional()
+    @IsString()
     publicToken?: string;
 
+    @IsArray()
     answers: CreateResponseAnswerDto[];
 }

@@ -1,9 +1,14 @@
+import { IsString, IsOptional } from 'class-validator';
+
 export class CreateResponseAnswerDto {
+    @IsString()
     questionId: string;
 
-    // TEXT 계열
+    @IsOptional()
+    @IsString()
     valueText?: string;
 
-    // CHOICE 계열
+    @IsOptional()
+    @IsString()
     optionId?: string;
 }
