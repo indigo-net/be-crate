@@ -17,10 +17,12 @@ import { FormsService } from '@/forms/forms.service';
 
 import { CreateFormDto } from '@/forms/dto/create-form.dto';
 import { UpdateFormDto } from '@/forms/dto/update-form.dto';
+import { CreateFormDraftDto } from '@/forms/dto/draft/create-form-draft.dto';
+import { CreateFormPublishDto } from '@/forms/dto/draft/create-form-publish.dto';
 
 
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard) // 모두 토큰을 넘기므로 내가 만든 폼 / 내가 만든 폼 조회
+@UseGuards(JwtAuthGuard)
 @Controller('forms')
 export class FormsController {
     constructor(private readonly formsService: FormsService) { }
@@ -65,5 +67,24 @@ export class FormsController {
         if (result.count === 0) throw new NotFoundException('Form not found');
         return { success: true };
     }
+
+    // Draft 저장
+    @Post('draft')
+    createDraft(
+        @Req() req: Request & { user: { id: string } },
+        @Body() dto: CreateFormDraftDto,
+    ) {
+        return this.formsService.createDraftWithQuestions(req.user.id, dto);
+    }
+
+    // Publish 저장
+    @Post('publish')
+    publish(
+        @Req() req: Request & { user: { id: string } },
+        @Body() dto: CreateFormPublishDto,
+    ) {
+        return this.formsService.publishWithQuestions(req.user.id, dto);
+    }
+
 
 }

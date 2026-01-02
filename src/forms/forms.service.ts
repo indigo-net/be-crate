@@ -2,6 +2,9 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "@/common/prisma/prisma.service";
 import { CreateFormDto } from "@/forms/dto/create-form.dto";
 import { UpdateFormDto } from "@/forms/dto/update-form.dto";
+import { CreateFormDraftDto } from "@/forms/dto/draft/create-form-draft.dto";
+import { CreateFormPublishDto } from "@/forms/dto/draft/create-form-publish.dto";
+import { FormStatus } from "@prisma/client";
 
 @Injectable()
 export class FormsService {
@@ -31,7 +34,7 @@ export class FormsService {
         });
     }
 
-    // 폼 단건 조회
+    // 폼 단건 조회(질문, 옵션 포함)
     findOne(userId: string, formId: string) {
         // findUnique 쓰면 권한 조건 못 넣음.
         // 안 나오면 null 반환 → 컨트롤러에서 처리.
@@ -41,7 +44,18 @@ export class FormsService {
                 owner_id: userId,
                 is_active: true,
             },
+            include: {
+                questions: {
+                    orderBy: { order_index: 'asc' },
+                    include: {
+                        options: {
+                            orderBy: { order_index: 'asc' },
+                        },
+                    },
+                },
+            },
         });
+
     }
 
     // 폼 수정
@@ -73,6 +87,79 @@ export class FormsService {
         });
     }
 
+    // =========================
+    // Draft / Publish
+    // =========================
+    async createDraftWithQuestions(
+        userId: string,
+        dto: CreateFormDraftDto,
+    ) {
+        return this.createFormWithQuestions(
+            userId,
+            dto,
+            FormStatus.DRAFT,
+        );
+    }
+
+    async publishWithQuestions(
+        userId: string,
+        dto: CreateFormPublishDto,
+    ) {
+        return this.createFormWithQuestions(
+            userId,
+            dto,
+            FormStatus.PUBLISHED,
+        );
+    }
+
+    private async createFormWithQuestions(
+        userId: string,
+        dto: CreateFormDraftDto | CreateFormPublishDto,
+        status: FormStatus,
+    ) {
+        const { form, questions } = dto;
+
+        return this.prisma.$transaction(async tx => {
+            // 1. Form 생성
+            const createdForm = await tx.form.create({
+                data: {
+                    title: form.title,
+                    description: form.description,
+                    owner_id: userId,
+                    status,
+                },
+            });
+
+            // 2. Question 생성
+            for (let i = 0; i < questions.length; i++) {
+                const question = questions[i];
+
+                const createdQuestion = await tx.question.create({
+                    data: {
+                        form_id: createdForm.id,
+                        title: question.title,
+                        type: question.type,
+                        is_required: question.isRequired,
+                        order_index: i,
+                    },
+                });
+
+                // 3. Option 생성 (있을 때만)
+                if (question.options?.length) {
+                    await tx.questionOption.createMany({
+                        data: question.options.map((option, idx) => ({
+                            question_id: createdQuestion.id,
+                            label: option.label,
+                            value: option.value,
+                            order_index: idx,
+                        })),
+                    });
+                }
+            }
+
+            return createdForm;
+        });
+    }
 
 
 

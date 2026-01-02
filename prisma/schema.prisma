@@ -49,12 +49,18 @@ model RefreshToken {
 //// Form / Question
 //// =====================
 
+enum FormStatus {
+  DRAFT
+  PUBLISHED
+}
+
 model Form {
   id          String   @id @default(uuid())
   title       String
   description String?
   owner_id    String
-  is_active   Boolean  @default(true)
+  status      FormStatus @default(DRAFT)
+  is_active   Boolean  @default(true)   // 일단 유지
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
