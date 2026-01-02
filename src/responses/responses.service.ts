@@ -61,7 +61,7 @@ export class ResponseService {
             }
         }
 
-        // 트랜잭션
+        // 트랜잭션 원자성 보장
         return this.prisma.$transaction(async tx => {
             const response = await tx.response.create({
                 data: {
