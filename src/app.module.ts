@@ -6,6 +6,7 @@ import { UsersModule } from '@/users/users.module';
 import { FormsModule } from '@/forms/forms.module';
 import { QuestionsModule } from '@/questions/questions.module';
 import { QuestionOptionsModule } from '@/question-options/question-options.module';
+import { ResponsesModule } from '@/responses/responses.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { QuestionOptionsModule } from '@/question-options/question-options.modul
     FormsModule,
     QuestionsModule,
     QuestionOptionsModule,
+    ResponsesModule,
   ],
 })
 export class AppModule { }

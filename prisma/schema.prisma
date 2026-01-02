@@ -7,21 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+//// =====================
+//// Auth / User
+//// =====================
+
 model User {
-  id           String        @id @default(uuid())
-  email        String?       @unique
+  id           String       @id @default(uuid())
+  email        String?      @unique
   passwordHash String?
   name         String?
-  provider     AuthProvider  @default(LOCAL)
+  provider     AuthProvider @default(LOCAL)
   providerId   String?
-  createdAt    DateTime      @default(now())
+  createdAt    DateTime     @default(now())
 
   forms         Form[]
   refreshTokens RefreshToken[]
 
   @@unique([provider, providerId])
 }
-
 
 enum AuthProvider {
   LOCAL
@@ -30,19 +33,21 @@ enum AuthProvider {
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
-  tokenHash String   @unique
+  tokenHash String    @unique
   expiresAt DateTime
   revokedAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
 
-
+//// =====================
+//// Form / Question
+//// =====================
 
 model Form {
   id          String   @id @default(uuid())
@@ -55,6 +60,7 @@ model Form {
 
   owner     User       @relation(fields: [owner_id], references: [id])
   questions Question[]
+  responses Response[]
 
   @@index([owner_id])
 }
@@ -76,8 +82,9 @@ model Question {
   created_at  DateTime     @default(now())
   updated_at  DateTime     @updatedAt
 
-  form    Form             @relation(fields: [form_id], references: [id])
-  options QuestionOption[]
+  form     Form             @relation(fields: [form_id], references: [id])
+  options  QuestionOption[]
+  answers  ResponseAnswer[]
 
   @@unique([form_id, order_index])
   @@index([form_id])
@@ -92,7 +99,39 @@ model QuestionOption {
   created_at  DateTime @default(now())
 
   question Question @relation(fields: [question_id], references: [id])
+  answers  ResponseAnswer[]
 
   @@unique([question_id, order_index])
   @@index([question_id])
 }
+
+model Response {
+  id          String   @id @default(uuid())
+  form_id     String
+  responderId String?
+  publicToken String?
+  created_at  DateTime @default(now())
+
+  form    Form             @relation(fields: [form_id], references: [id])
+  answers ResponseAnswer[]
+
+  @@index([form_id])
+  @@index([publicToken])
+}
+
+model ResponseAnswer {
+  id          String   @id @default(uuid())
+  response_id String
+  question_id String
+  option_id   String?
+  value_text  String?
+
+  response Response        @relation(fields: [response_id], references: [id])
+  question Question        @relation(fields: [question_id], references: [id])
+  option   QuestionOption? @relation(fields: [option_id], references: [id])
+
+  @@unique([response_id, question_id])
+  @@index([question_id])
+}
+
+
