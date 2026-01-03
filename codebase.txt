@@ -42,6 +42,7 @@ The content is organized as follows:
 <directory_structure>
 .github/
   workflows/
+    generate-docs.yml
     update-codebase.yml
 prisma/
   migrations/
@@ -126,6 +127,7 @@ src/
     users.module.ts
     users.service.ts
   app.module.ts
+  generate-swagger.ts
   main.ts
 test/
   app.e2e-spec.ts
@@ -139,12 +141,54 @@ docker-compose.yml
 nest-cli.json
 package.json
 README.md
+swagger-spec.json
 tsconfig.build.json
 tsconfig.json
 </directory_structure>
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path=".github/workflows/generate-docs.yml">
+name: Generate Swagger Spec
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  generate-swagger:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 레포지토리에 커밋하기 위해 필요
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Swagger JSON
+        run: npm run generate:swagger
+
+      - name: Commit and Push if changed
+        if: github.event_name == 'push'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add swagger-spec.json
+          # 변경사항이 있을 때만 커밋
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update swagger spec [skip ci]" && git push)
+</file>
 
 <file path=".github/workflows/update-codebase.yml">
 name: Update Codebase
@@ -1146,6 +1190,7 @@ import {
     ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum QuestionType {
     SHORT_TEXT = 'SHORT_TEXT',
@@ -1155,26 +1200,32 @@ export enum QuestionType {
 }
 
 class CreateQuestionOptionDto {
+    @ApiProperty({ description: '옵션 라벨', example: '옵션 1' })
     @IsString()
     @IsNotEmpty()
     label: string;
 
+    @ApiPropertyOptional({ description: '옵션 값', example: 'option_1' })
     @IsString()
     @IsOptional()
     value?: string;
 }
 
 class CreateQuestionDto {
+    @ApiProperty({ description: '질문 제목', example: '가장 좋아하는 색깔은?' })
     @IsString()
     @IsNotEmpty()
     title: string;
 
+    @ApiProperty({ enum: QuestionType, description: '질문 유형', example: QuestionType.SINGLE_CHOICE })
     @IsEnum(QuestionType)
     type: QuestionType;
 
+    @ApiProperty({ description: '필수 여부', example: true })
     @IsBoolean()
     isRequired: boolean;
 
+    @ApiPropertyOptional({ type: [CreateQuestionOptionDto], description: '질문 옵션 목록 (객관식일 경우)' })
     @IsArray()
     @IsOptional()
     @ValidateNested({ each: true })
@@ -1183,20 +1234,24 @@ class CreateQuestionDto {
 }
 
 class CreateFormPayloadDto {
+    @ApiProperty({ description: '폼 제목', example: '설문조사 제목' })
     @IsString()
     @IsNotEmpty()
     title: string;
 
+    @ApiPropertyOptional({ description: '폼 설명', example: '설문조사 설명' })
     @IsString()
     @IsOptional()
     description?: string;
 }
 
 export class CreateFormDraftDto {
+    @ApiProperty({ type: CreateFormPayloadDto, description: '폼 기본 정보' })
     @ValidateNested()
     @Type(() => CreateFormPayloadDto)
     form: CreateFormPayloadDto;
 
+    @ApiProperty({ type: [CreateQuestionDto], description: '질문 목록' })
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => CreateQuestionDto)
@@ -1215,6 +1270,7 @@ import {
     ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export enum QuestionType {
     SHORT_TEXT = 'SHORT_TEXT',
@@ -1224,26 +1280,32 @@ export enum QuestionType {
 }
 
 class CreateQuestionOptionDto {
+    @ApiProperty({ description: '옵션 라벨', example: '옵션 1' })
     @IsString()
     @IsNotEmpty()
     label: string;
 
+    @ApiPropertyOptional({ description: '옵션 값', example: 'option_1' })
     @IsString()
     @IsOptional()
     value?: string;
 }
 
 class CreateQuestionDto {
+    @ApiProperty({ description: '질문 제목', example: '가장 좋아하는 색깔은?' })
     @IsString()
     @IsNotEmpty()
     title: string;
 
+    @ApiProperty({ enum: QuestionType, description: '질문 유형', example: QuestionType.SINGLE_CHOICE })
     @IsEnum(QuestionType)
     type: QuestionType;
 
+    @ApiProperty({ description: '필수 여부', example: true })
     @IsBoolean()
     isRequired: boolean;
 
+    @ApiPropertyOptional({ type: [CreateQuestionOptionDto], description: '질문 옵션 목록 (객관식일 경우)' })
     @IsArray()
     @IsOptional()
     @ValidateNested({ each: true })
@@ -1252,20 +1314,24 @@ class CreateQuestionDto {
 }
 
 class CreateFormPayloadDto {
+    @ApiProperty({ description: '폼 제목', example: '설문조사 제목' })
     @IsString()
     @IsNotEmpty()
     title: string;
 
+    @ApiPropertyOptional({ description: '폼 설명', example: '설문조사 설명' })
     @IsString()
     @IsOptional()
     description?: string;
 }
 
 export class CreateFormPublishDto {
+    @ApiProperty({ type: CreateFormPayloadDto, description: '폼 기본 정보' })
     @ValidateNested()
     @Type(() => CreateFormPayloadDto)
     form: CreateFormPayloadDto;
 
+    @ApiProperty({ type: [CreateQuestionDto], description: '질문 목록' })
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => CreateQuestionDto)
@@ -1275,12 +1341,15 @@ export class CreateFormPublishDto {
 
 <file path="src/forms/dto/create-form.dto.ts">
 import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateFormDto {
+    @ApiProperty({ description: '폼 제목', example: '설문조사 제목' })
     @IsString()
     @IsNotEmpty()
     title: string;
 
+    @ApiPropertyOptional({ description: '폼 설명', example: '설문조사에 대한 설명입니다.' })
     @IsString()
     @IsOptional()
     description?: string;
@@ -1289,12 +1358,15 @@ export class CreateFormDto {
 
 <file path="src/forms/dto/update-form.dto.ts">
 import { IsString, IsOptional } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateFormDto {
+    @ApiPropertyOptional({ description: '폼 제목 수정', example: '수정된 설문조사 제목' })
     @IsString()
     @IsOptional()
     title?: string;
 
+    @ApiPropertyOptional({ description: '폼 설명 수정', example: '수정된 설문조사 설명' })
     @IsString()
     @IsOptional()
     description?: string;
@@ -1314,7 +1386,7 @@ import {
     UseGuards,
     NotFoundException,
 } from '@nestjs/common';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { FormsService } from '@/forms/forms.service';
@@ -1325,6 +1397,7 @@ import { CreateFormDraftDto } from '@/forms/dto/draft/create-form-draft.dto';
 import { CreateFormPublishDto } from '@/forms/dto/draft/create-form-publish.dto';
 
 
+@ApiTags('Forms')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('forms')
@@ -1333,6 +1406,8 @@ export class FormsController {
 
     // 생성
     @Post()
+    @ApiOperation({ summary: '새로운 폼 생성', description: '제목과 설명을 입력받아 새로운 폼을 생성합니다.' })
+    @ApiResponse({ status: 201, description: '생성 성공' })
     create(@Req() req: Request & { user: { id: string } },
         @Body() dto: CreateFormDto) {
         return this.formsService.create(req.user.id, dto);
@@ -1340,12 +1415,18 @@ export class FormsController {
 
     // 조회
     @Get()
+    @ApiOperation({ summary: '내 폼 목록 조회', description: '사용자가 생성한 모든 폼 목록을 조회합니다.' })
+    @ApiResponse({ status: 200, description: '조회 성공' })
     findAll(@Req() req: Request & { user: { id: string } }) {
         return this.formsService.findAll(req.user.id);
     }
 
     // 단건 조회
     @Get(':id')
+    @ApiOperation({ summary: '폼 상세 조회', description: '특정 폼의 상세 정보를 조회합니다.' })
+    @ApiParam({ name: 'id', description: '폼 ID' })
+    @ApiResponse({ status: 200, description: '조회 성공' })
+    @ApiResponse({ status: 404, description: '폼을 찾을 수 없음' })
     async findOne(@Req() req: Request & { user: { id: string } }, @Param('id') id: string) {
         const form = await this.formsService.findOne(req.user.id, id);
         if (!form) throw new NotFoundException('Form not found');
@@ -1354,6 +1435,10 @@ export class FormsController {
 
     // 수정
     @Patch(':id')
+    @ApiOperation({ summary: '폼 정보 수정', description: '폼의 제목이나 설명을 수정합니다.' })
+    @ApiParam({ name: 'id', description: '폼 ID' })
+    @ApiResponse({ status: 200, description: '수정 성공' })
+    @ApiResponse({ status: 404, description: '폼을 찾을 수 없음' })
     async update(
         @Req() req: Request & { user: { id: string } },
         @Param('id') id: string,
@@ -1366,6 +1451,10 @@ export class FormsController {
 
     // 삭제 (soft delete)
     @Delete(':id')
+    @ApiOperation({ summary: '폼 삭제', description: '폼을 삭제합니다 (Soft Delete).' })
+    @ApiParam({ name: 'id', description: '폼 ID' })
+    @ApiResponse({ status: 200, description: '삭제 성공' })
+    @ApiResponse({ status: 404, description: '폼을 찾을 수 없음' })
     async remove(@Req() req: Request & { user: { id: string } }, @Param('id') id: string) {
         const result = await this.formsService.remove(req.user.id, id);
         if (result.count === 0) throw new NotFoundException('Form not found');
@@ -1374,6 +1463,8 @@ export class FormsController {
 
     // Draft 저장
     @Post('draft')
+    @ApiOperation({ summary: '폼 초안 저장 (전체)', description: '폼 정보와 질문 목록을 포함하여 초안 상태로 저장합니다.' })
+    @ApiResponse({ status: 201, description: '저장 성공' })
     createDraft(
         @Req() req: Request & { user: { id: string } },
         @Body() dto: CreateFormDraftDto,
@@ -1383,6 +1474,8 @@ export class FormsController {
 
     // Publish 저장
     @Post('publish')
+    @ApiOperation({ summary: '폼 게시 (전체)', description: '폼 정보와 질문 목록을 포함하여 게시 상태로 저장합니다.' })
+    @ApiResponse({ status: 201, description: '게시 성공' })
     publish(
         @Req() req: Request & { user: { id: string } },
         @Body() dto: CreateFormPublishDto,
@@ -2206,15 +2299,19 @@ export class QuestionsService {
 
 <file path="src/responses/dto/create-response-answer.dto.ts">
 import { IsString, IsOptional } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateResponseAnswerDto {
+    @ApiProperty({ description: '질문 ID', example: 'uuid-question-id' })
     @IsString()
     questionId: string;
 
+    @ApiPropertyOptional({ description: '주관식 답변 (단답/장문)', example: '답변 내용입니다.' })
     @IsOptional()
     @IsString()
     valueText?: string;
 
+    @ApiPropertyOptional({ description: '객관식 선택지 ID', example: 'uuid-option-id' })
     @IsOptional()
     @IsString()
     optionId?: string;
@@ -2223,16 +2320,20 @@ export class CreateResponseAnswerDto {
 
 <file path="src/responses/dto/create-response.dto.ts">
 import { IsString, IsOptional, IsArray } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateResponseAnswerDto } from './create-response-answer.dto';
 
 export class CreateResponseDto {
+    @ApiProperty({ description: '폼 ID', example: 'uuid-form-id' })
     @IsString()
     formId: string;
 
+    @ApiPropertyOptional({ description: '퍼블릭 토큰 (비회원 응답 시)', example: 'public-token-string' })
     @IsOptional()
     @IsString()
     publicToken?: string;
 
+    @ApiProperty({ type: [CreateResponseAnswerDto], description: '응답 목록' })
     @IsArray()
     answers: CreateResponseAnswerDto[];
 }
@@ -2240,10 +2341,12 @@ export class CreateResponseDto {
 
 <file path="src/responses/responses.controller.ts">
 import { Controller, Post, UseGuards, Body, Req } from "@nestjs/common";
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { OptionalJwtAuthGuard } from "@/auth/guards/optional-jwt-auth.guard";
 import { ResponseService } from "@/responses/responses.service";
 import { CreateResponseDto } from "@/responses/dto/create-response.dto";
 
+@ApiTags('Responses')
 @Controller('responses')
 export class ResponseController {
     constructor(
@@ -2251,6 +2354,9 @@ export class ResponseController {
     ) { }
 
     @Post()
+    @ApiBearerAuth()
+    @ApiOperation({ summary: '설문 응답 제출', description: '작성한 설문 응답을 제출합니다. (로그인시 회원 연결, 비회원도 가능)' })
+    @ApiResponse({ status: 201, description: '제출 성공' })
     @UseGuards(OptionalJwtAuthGuard)
     async create(@Body() dto: CreateResponseDto, @Req() req: any) {
         return this.responseService.create(dto, req.user);
@@ -2502,6 +2608,63 @@ import { ResponsesModule } from '@/responses/responses.module';
 export class AppModule { }
 </file>
 
+<file path="src/generate-swagger.ts">
+import { Test } from '@nestjs/testing';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+import { PrismaService } from '@/common/prisma/prisma.service';
+import * as fs from 'fs';
+
+async function generateSwagger() {
+    let app;
+
+    try {
+        // 🟡 Fix: JwtStrategy requires a secret
+        process.env.JWT_SECRET = 'fix-for-swagger-generation';
+
+        const moduleFixture = await Test.createTestingModule({
+            imports: [AppModule],
+        })
+            .overrideProvider(PrismaService)
+            .useValue({
+                onModuleInit: async () => { },
+                onModuleDestroy: async () => { },
+                $connect: async () => { },
+                $disconnect: async () => { },
+            })
+            .compile();
+
+        app = moduleFixture.createNestApplication({ logger: false });
+
+        const config = new DocumentBuilder()
+            .setTitle('CRATE API')
+            .setDescription('CRATE Backend API')
+            .setVersion('1.0')
+            .addBearerAuth()
+            .build();
+
+        const document = SwaggerModule.createDocument(app, config);
+
+        fs.writeFileSync('./swagger-spec.json', JSON.stringify(document, null, 2));
+        console.log('Swagger spec generated: swagger-spec.json');
+
+    } catch (error) {
+        console.error('Failed to generate Swagger spec:', error);
+        process.exit(1);
+    } finally {
+        if (app) {
+            try {
+                await app.close();
+            } catch (closeError) {
+                console.error('Error closing application:', closeError);
+            }
+        }
+    }
+}
+
+generateSwagger();
+</file>
+
 <file path="src/main.ts">
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
@@ -2728,7 +2891,8 @@ volumes:
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "generate:swagger": "ts-node -r tsconfig-paths/register src/generate-swagger.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
@@ -2923,6 +3087,906 @@ volumes:
 ---
 
 ⚠️ 이 문서는 **개발 진행에 따라 계속 갱신됨**
+</file>
+
+<file path="swagger-spec.json">
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/auth/signup": {
+      "post": {
+        "operationId": "AuthController_signup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/kakao": {
+      "post": {
+        "operationId": "AuthController_kakaoLogin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KakaoLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/forms": {
+      "post": {
+        "description": "제목과 설명을 입력받아 새로운 폼을 생성합니다.",
+        "operationId": "FormsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFormDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "생성 성공"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "새로운 폼 생성",
+        "tags": [
+          "Forms"
+        ]
+      },
+      "get": {
+        "description": "사용자가 생성한 모든 폼 목록을 조회합니다.",
+        "operationId": "FormsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "조회 성공"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "내 폼 목록 조회",
+        "tags": [
+          "Forms"
+        ]
+      }
+    },
+    "/forms/{id}": {
+      "get": {
+        "description": "특정 폼의 상세 정보를 조회합니다.",
+        "operationId": "FormsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "폼 ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "조회 성공"
+          },
+          "404": {
+            "description": "폼을 찾을 수 없음"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "폼 상세 조회",
+        "tags": [
+          "Forms"
+        ]
+      },
+      "patch": {
+        "description": "폼의 제목이나 설명을 수정합니다.",
+        "operationId": "FormsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "폼 ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFormDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "수정 성공"
+          },
+          "404": {
+            "description": "폼을 찾을 수 없음"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "폼 정보 수정",
+        "tags": [
+          "Forms"
+        ]
+      },
+      "delete": {
+        "description": "폼을 삭제합니다 (Soft Delete).",
+        "operationId": "FormsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "폼 ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "삭제 성공"
+          },
+          "404": {
+            "description": "폼을 찾을 수 없음"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "폼 삭제",
+        "tags": [
+          "Forms"
+        ]
+      }
+    },
+    "/forms/draft": {
+      "post": {
+        "description": "폼 정보와 질문 목록을 포함하여 초안 상태로 저장합니다.",
+        "operationId": "FormsController_createDraft",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFormDraftDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "저장 성공"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "폼 초안 저장 (전체)",
+        "tags": [
+          "Forms"
+        ]
+      }
+    },
+    "/forms/publish": {
+      "post": {
+        "description": "폼 정보와 질문 목록을 포함하여 게시 상태로 저장합니다.",
+        "operationId": "FormsController_publish",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFormPublishDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "게시 성공"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "폼 게시 (전체)",
+        "tags": [
+          "Forms"
+        ]
+      }
+    },
+    "/forms/{formId}/questions": {
+      "post": {
+        "operationId": "QuestionsController_create",
+        "parameters": [
+          {
+            "name": "formId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQuestionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Questions"
+        ]
+      },
+      "get": {
+        "operationId": "QuestionsController_findAll",
+        "parameters": [
+          {
+            "name": "formId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Questions"
+        ]
+      }
+    },
+    "/forms/{formId}/questions/reorder": {
+      "patch": {
+        "operationId": "QuestionsController_reorder",
+        "parameters": [
+          {
+            "name": "formId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderQuestionsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Questions"
+        ]
+      }
+    },
+    "/forms/{formId}/questions/{id}": {
+      "patch": {
+        "operationId": "QuestionsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "질문 ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "formId",
+            "required": true,
+            "in": "path",
+            "description": "폼 ID",
+            "schema": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateQuestionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Questions"
+        ]
+      },
+      "delete": {
+        "operationId": "QuestionsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "질문 ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "formId",
+            "required": true,
+            "in": "path",
+            "description": "폼 ID",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Questions"
+        ]
+      }
+    },
+    "/questions/{questionId}/options": {
+      "post": {
+        "operationId": "QuestionOptionsController_create",
+        "parameters": [
+          {
+            "name": "questionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQuestionOptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "QuestionOptions"
+        ]
+      },
+      "delete": {
+        "operationId": "QuestionOptionsController_delete",
+        "parameters": [
+          {
+            "name": "questionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteQuestionOptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "QuestionOptions"
+        ]
+      }
+    },
+    "/questions/{questionId}/options/reorder": {
+      "patch": {
+        "operationId": "QuestionOptionsController_reorder",
+        "parameters": [
+          {
+            "name": "questionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderQuestionOptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "QuestionOptions"
+        ]
+      }
+    },
+    "/responses": {
+      "post": {
+        "description": "작성한 설문 응답을 제출합니다.",
+        "operationId": "ResponseController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResponseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "제출 성공"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "설문 응답 제출",
+        "tags": [
+          "Responses"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "CRATE API",
+    "description": "CRATE Backend API",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "SignupDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "KakaoLoginDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateFormDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "폼 제목",
+            "example": " 설문조사 제목"
+          },
+          "description": {
+            "type": "string",
+            "description": "폼 설명",
+            "example": "설문조사에 대한 설명입니다."
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "UpdateFormDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "폼 제목 수정",
+            "example": "수정된 설문조사 제목"
+          },
+          "description": {
+            "type": "string",
+            "description": "폼 설명 수정",
+            "example": "수정된 설문조사 설명"
+          }
+        }
+      },
+      "CreateFormPayloadDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "폼 제목",
+            "example": "설문조사 제목"
+          },
+          "description": {
+            "type": "string",
+            "description": "폼 설명",
+            "example": "설문조사 설명"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "CreateQuestionOptionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateQuestionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateFormDraftDto": {
+        "type": "object",
+        "properties": {
+          "form": {
+            "description": "폼 기본 정보",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CreateFormPayloadDto"
+              }
+            ]
+          },
+          "questions": {
+            "description": "질문 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateQuestionDto"
+            }
+          }
+        },
+        "required": [
+          "form",
+          "questions"
+        ]
+      },
+      "CreateFormPublishDto": {
+        "type": "object",
+        "properties": {
+          "form": {
+            "description": "폼 기본 정보",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CreateFormPayloadDto"
+              }
+            ]
+          },
+          "questions": {
+            "description": "질문 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateQuestionDto"
+            }
+          }
+        },
+        "required": [
+          "form",
+          "questions"
+        ]
+      },
+      "ReorderQuestionsDto": {
+        "type": "object",
+        "properties": {
+          "questionIds": {
+            "example": [
+              "d4c6893f-12a5-4974-9e59-ce0c29e36d43",
+              "e734dd9c-a144-409f-a3ff-74daa7dece88",
+              "9602fcf0-c74e-4845-92b6-224da3837ee6"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "questionIds"
+        ]
+      },
+      "UpdateQuestionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ReorderQuestionOptionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "DeleteQuestionOptionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateResponseAnswerDto": {
+        "type": "object",
+        "properties": {
+          "questionId": {
+            "type": "string",
+            "description": "질문 ID",
+            "example": "uuid-question-id"
+          },
+          "valueText": {
+            "type": "string",
+            "description": "주관식 답변 (단답/장문)",
+            "example": "답변 내용입니다."
+          },
+          "optionId": {
+            "type": "string",
+            "description": "객관식 선택지 ID",
+            "example": "uuid-option-id"
+          }
+        },
+        "required": [
+          "questionId"
+        ]
+      },
+      "CreateResponseDto": {
+        "type": "object",
+        "properties": {
+          "formId": {
+            "type": "string",
+            "description": "폼 ID",
+            "example": "uuid-form-id"
+          },
+          "publicToken": {
+            "type": "string",
+            "description": "퍼블릭 토큰 (비회원 응답 시)",
+            "example": "public-token-string"
+          },
+          "answers": {
+            "description": "응답 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateResponseAnswerDto"
+            }
+          }
+        },
+        "required": [
+          "formId",
+          "answers"
+        ]
+      }
+    }
+  }
+}
 </file>
 
 <file path="tsconfig.build.json">
