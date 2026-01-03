@@ -5,6 +5,9 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import * as fs from 'fs';
 
 async function generateSwagger() {
+    // 🟡 Fix: JwtStrategy requires a secret
+    process.env.JWT_SECRET = 'fix-for-swagger-generation';
+
     const moduleFixture = await Test.createTestingModule({
         imports: [AppModule],
     })
