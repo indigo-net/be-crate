@@ -2,7 +2,7 @@ import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateFormDto {
-    @ApiProperty({ description: '폼 제목', example: ' 설문조사 제목' })
+    @ApiProperty({ description: '폼 제목', example: '설문조사 제목' })
     @IsString()
     @IsNotEmpty()
     title: string;

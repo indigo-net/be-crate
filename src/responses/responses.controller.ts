@@ -5,7 +5,6 @@ import { ResponseService } from "@/responses/responses.service";
 import { CreateResponseDto } from "@/responses/dto/create-response.dto";
 
 @ApiTags('Responses')
-@ApiBearerAuth()
 @Controller('responses')
 export class ResponseController {
     constructor(
@@ -13,7 +12,8 @@ export class ResponseController {
     ) { }
 
     @Post()
-    @ApiOperation({ summary: '설문 응답 제출', description: '작성한 설문 응답을 제출합니다.' })
+    @ApiBearerAuth()
+    @ApiOperation({ summary: '설문 응답 제출', description: '작성한 설문 응답을 제출합니다. (로그인시 회원 연결, 비회원도 가능)' })
     @ApiResponse({ status: 201, description: '제출 성공' })
     @UseGuards(OptionalJwtAuthGuard)
     async create(@Body() dto: CreateResponseDto, @Req() req: any) {

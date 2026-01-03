@@ -29,6 +29,7 @@ jobs:
         run: npm run generate:swagger
 
       - name: Commit and Push if changed
+        if: github.event_name == 'push'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"

@@ -5,36 +5,50 @@ import { PrismaService } from '@/common/prisma/prisma.service';
 import * as fs from 'fs';
 
 async function generateSwagger() {
-    // 🟡 Fix: JwtStrategy requires a secret
-    process.env.JWT_SECRET = 'fix-for-swagger-generation';
+    let app;
 
-    const moduleFixture = await Test.createTestingModule({
-        imports: [AppModule],
-    })
-        .overrideProvider(PrismaService)
-        .useValue({
-            onModuleInit: async () => { },
-            onModuleDestroy: async () => { },
-            $connect: async () => { },
-            $disconnect: async () => { },
+    try {
+        // 🟡 Fix: JwtStrategy requires a secret
+        process.env.JWT_SECRET = 'fix-for-swagger-generation';
+
+        const moduleFixture = await Test.createTestingModule({
+            imports: [AppModule],
         })
-        .compile();
+            .overrideProvider(PrismaService)
+            .useValue({
+                onModuleInit: async () => { },
+                onModuleDestroy: async () => { },
+                $connect: async () => { },
+                $disconnect: async () => { },
+            })
+            .compile();
 
-    const app = moduleFixture.createNestApplication({ logger: false });
+        app = moduleFixture.createNestApplication({ logger: false });
 
-    const config = new DocumentBuilder()
-        .setTitle('CRATE API')
-        .setDescription('CRATE Backend API')
-        .setVersion('1.0')
-        .addBearerAuth()
-        .build();
+        const config = new DocumentBuilder()
+            .setTitle('CRATE API')
+            .setDescription('CRATE Backend API')
+            .setVersion('1.0')
+            .addBearerAuth()
+            .build();
 
-    const document = SwaggerModule.createDocument(app, config);
+        const document = SwaggerModule.createDocument(app, config);
 
-    fs.writeFileSync('./swagger-spec.json', JSON.stringify(document, null, 2));
-    console.log('Swagger spec generated: swagger-spec.json');
+        fs.writeFileSync('./swagger-spec.json', JSON.stringify(document, null, 2));
+        console.log('Swagger spec generated: swagger-spec.json');
 
-    await app.close();
+    } catch (error) {
+        console.error('Failed to generate Swagger spec:', error);
+        process.exit(1);
+    } finally {
+        if (app) {
+            try {
+                await app.close();
+            } catch (closeError) {
+                console.error('Error closing application:', closeError);
+            }
+        }
+    }
 }
 
 generateSwagger();
