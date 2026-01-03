@@ -1,0 +1,2968 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    update-codebase.yml
+prisma/
+  migrations/
+    20251221104021_init_user/
+      migration.sql
+    20251223063804_init_user/
+      migration.sql
+    20251223163713_add_form/
+      migration.sql
+    20251223184350_add_question/
+      migration.sql
+    20251224164952_add_question_option/
+      migration.sql
+    20251228100240/
+      migration.sql
+    20251228114027_add_refresh_token/
+      migration.sql
+    20260102102758_add_form_status/
+      migration.sql
+    migration_lock.toml
+  schema.prisma
+src/
+  auth/
+    dto/
+      kakao-login.dto.ts
+      login.dto.ts
+      signup.dto.ts
+    guards/
+      jwt-auth.guard.ts
+      optional-jwt-auth.guard.ts
+    strategies/
+      jwt.strategy.ts
+    auth.controller.ts
+    auth.module.ts
+    auth.service.ts
+    refresh-token.service.ts
+  common/
+    prisma/
+      prisma.module.ts
+      prisma.service.ts
+  forms/
+    dto/
+      draft/
+        create-form-draft.dto.ts
+        create-form-publish.dto.ts
+      create-form.dto.ts
+      update-form.dto.ts
+    forms.controller.ts
+    forms.module.ts
+    forms.service.ts
+  permissions/
+    permissions.module.ts
+    permissions.service.ts
+  public-links/
+    public-links.controller.ts
+    public-links.module.ts
+  question-options/
+    dto/
+      create-question-option.dto.ts
+      delete-question-option.dto.ts
+      reorder-question-option.dto.ts
+    question-options.controller.ts
+    question-options.module.ts
+    question-options.service.ts
+  questions/
+    dto/
+      create-question.dto.ts
+      reorder-questions.dto.ts
+      update-question.dto.ts
+    questions.controller.ts
+    questions.module.ts
+    questions.service.ts
+  responses/
+    dto/
+      create-response-answer.dto.ts
+      create-response.dto.ts
+    responses.controller.ts
+    responses.module.ts
+    responses.service.ts
+  users/
+    users.controller.ts
+    users.module.ts
+    users.service.ts
+  app.module.ts
+  main.ts
+test/
+  app.e2e-spec.ts
+  jest-e2e.json
+.env.dev
+.env.prod
+.eslintrc.js
+.gitignore
+.prettierrc
+docker-compose.yml
+nest-cli.json
+package.json
+README.md
+tsconfig.build.json
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/update-codebase.yml">
+name: Update Codebase
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  update-codebase:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Node.js 환경 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 코드베이스 분석 및 codebase.txt 생성
+        run: npx -y repomix --output codebase.txt --style xml
+
+      - name: 변경 사항 커밋 및 푸시
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add codebase.txt
+          git commit -m "chore: update codebase.txt [skip ci]" || echo "No changes to commit"
+          git push
+</file>
+
+<file path="prisma/migrations/20251221104021_init_user/migration.sql">
+-- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+</file>
+
+<file path="prisma/migrations/20251223063804_init_user/migration.sql">
+/*
+  Warnings:
+
+  - You are about to drop the column `createdAt` on the `User` table. All the data in the column will be lost.
+  - Added the required column `password_hash` to the `User` table without a default value. This is not possible if the table is not empty.
+
+*/
+-- AlterTable
+ALTER TABLE "User" DROP COLUMN "createdAt",
+ADD COLUMN     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN     "name" TEXT,
+ADD COLUMN     "password_hash" TEXT NOT NULL;
+</file>
+
+<file path="prisma/migrations/20251223163713_add_form/migration.sql">
+-- CreateTable
+CREATE TABLE "Form" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT,
+    "owner_id" TEXT NOT NULL,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Form_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "Form_owner_id_idx" ON "Form"("owner_id");
+
+-- AddForeignKey
+ALTER TABLE "Form" ADD CONSTRAINT "Form_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+</file>
+
+<file path="prisma/migrations/20251223184350_add_question/migration.sql">
+-- CreateEnum
+CREATE TYPE "QuestionType" AS ENUM ('SHORT_TEXT', 'LONG_TEXT', 'SINGLE_CHOICE', 'MULTIPLE_CHOICE');
+
+-- CreateTable
+CREATE TABLE "Question" (
+    "id" TEXT NOT NULL,
+    "form_id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "type" "QuestionType" NOT NULL,
+    "is_required" BOOLEAN NOT NULL DEFAULT false,
+    "order_index" INTEGER NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Question_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "Question_form_id_idx" ON "Question"("form_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Question_form_id_order_index_key" ON "Question"("form_id", "order_index");
+
+-- AddForeignKey
+ALTER TABLE "Question" ADD CONSTRAINT "Question_form_id_fkey" FOREIGN KEY ("form_id") REFERENCES "Form"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+</file>
+
+<file path="prisma/migrations/20251224164952_add_question_option/migration.sql">
+-- CreateTable
+CREATE TABLE "QuestionOption" (
+    "id" TEXT NOT NULL,
+    "question_id" TEXT NOT NULL,
+    "label" TEXT NOT NULL,
+    "value" TEXT,
+    "order_index" INTEGER NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "QuestionOption_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "QuestionOption_question_id_idx" ON "QuestionOption"("question_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "QuestionOption_question_id_order_index_key" ON "QuestionOption"("question_id", "order_index");
+
+-- AddForeignKey
+ALTER TABLE "QuestionOption" ADD CONSTRAINT "QuestionOption_question_id_fkey" FOREIGN KEY ("question_id") REFERENCES "Question"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+</file>
+
+<file path="prisma/migrations/20251228100240/migration.sql">
+/*
+  Warnings:
+
+  - You are about to drop the column `created_at` on the `User` table. All the data in the column will be lost.
+  - You are about to drop the column `password_hash` on the `User` table. All the data in the column will be lost.
+  - A unique constraint covering the columns `[provider,providerId]` on the table `User` will be added. If there are existing duplicate values, this will fail.
+
+*/
+-- CreateEnum
+CREATE TYPE "AuthProvider" AS ENUM ('LOCAL', 'KAKAO', 'GOOGLE');
+
+-- AlterTable
+ALTER TABLE "User" DROP COLUMN "created_at",
+DROP COLUMN "password_hash",
+ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN     "passwordHash" TEXT,
+ADD COLUMN     "provider" "AuthProvider" NOT NULL DEFAULT 'LOCAL',
+ADD COLUMN     "providerId" TEXT,
+ALTER COLUMN "email" DROP NOT NULL;
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_provider_providerId_key" ON "User"("provider", "providerId");
+</file>
+
+<file path="prisma/migrations/20251228114027_add_refresh_token/migration.sql">
+-- CreateTable
+CREATE TABLE "RefreshToken" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "tokenHash" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "revokedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RefreshToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RefreshToken_tokenHash_key" ON "RefreshToken"("tokenHash");
+
+-- CreateIndex
+CREATE INDEX "RefreshToken_userId_idx" ON "RefreshToken"("userId");
+
+-- AddForeignKey
+ALTER TABLE "RefreshToken" ADD CONSTRAINT "RefreshToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+</file>
+
+<file path="prisma/migrations/20260102102758_add_form_status/migration.sql">
+-- CreateEnum
+CREATE TYPE "FormStatus" AS ENUM ('DRAFT', 'PUBLISHED');
+
+-- AlterTable
+ALTER TABLE "Form" ADD COLUMN     "status" "FormStatus" NOT NULL DEFAULT 'DRAFT';
+
+-- CreateTable
+CREATE TABLE "Response" (
+    "id" TEXT NOT NULL,
+    "form_id" TEXT NOT NULL,
+    "responderId" TEXT,
+    "publicToken" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Response_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ResponseAnswer" (
+    "id" TEXT NOT NULL,
+    "response_id" TEXT NOT NULL,
+    "question_id" TEXT NOT NULL,
+    "option_id" TEXT,
+    "value_text" TEXT,
+
+    CONSTRAINT "ResponseAnswer_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "Response_form_id_idx" ON "Response"("form_id");
+
+-- CreateIndex
+CREATE INDEX "Response_publicToken_idx" ON "Response"("publicToken");
+
+-- CreateIndex
+CREATE INDEX "ResponseAnswer_question_id_idx" ON "ResponseAnswer"("question_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ResponseAnswer_response_id_question_id_key" ON "ResponseAnswer"("response_id", "question_id");
+
+-- AddForeignKey
+ALTER TABLE "Response" ADD CONSTRAINT "Response_form_id_fkey" FOREIGN KEY ("form_id") REFERENCES "Form"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ResponseAnswer" ADD CONSTRAINT "ResponseAnswer_response_id_fkey" FOREIGN KEY ("response_id") REFERENCES "Response"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ResponseAnswer" ADD CONSTRAINT "ResponseAnswer_question_id_fkey" FOREIGN KEY ("question_id") REFERENCES "Question"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ResponseAnswer" ADD CONSTRAINT "ResponseAnswer_option_id_fkey" FOREIGN KEY ("option_id") REFERENCES "QuestionOption"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+</file>
+
+<file path="prisma/migrations/migration_lock.toml">
+# Please do not edit this file manually
+# It should be added in your version-control system (e.g., Git)
+provider = "postgresql"
+</file>
+
+<file path="prisma/schema.prisma">
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//// =====================
+//// Auth / User
+//// =====================
+
+model User {
+  id           String       @id @default(uuid())
+  email        String?      @unique
+  passwordHash String?
+  name         String?
+  provider     AuthProvider @default(LOCAL)
+  providerId   String?
+  createdAt    DateTime     @default(now())
+
+  forms         Form[]
+  refreshTokens RefreshToken[]
+
+  @@unique([provider, providerId])
+}
+
+enum AuthProvider {
+  LOCAL
+  KAKAO
+  GOOGLE
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+//// =====================
+//// Form / Question
+//// =====================
+
+enum FormStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Form {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  owner_id    String
+  status      FormStatus @default(DRAFT)
+  is_active   Boolean  @default(true)   // 일단 유지
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  owner     User       @relation(fields: [owner_id], references: [id])
+  questions Question[]
+  responses Response[]
+
+  @@index([owner_id])
+}
+
+enum QuestionType {
+  SHORT_TEXT
+  LONG_TEXT
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+}
+
+model Question {
+  id          String       @id @default(uuid())
+  form_id     String
+  title       String
+  type        QuestionType
+  is_required Boolean      @default(false)
+  order_index Int
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @updatedAt
+
+  form     Form             @relation(fields: [form_id], references: [id])
+  options  QuestionOption[]
+  answers  ResponseAnswer[]
+
+  @@unique([form_id, order_index])
+  @@index([form_id])
+}
+
+model QuestionOption {
+  id          String   @id @default(uuid())
+  question_id String
+  label       String
+  value       String?
+  order_index Int
+  created_at  DateTime @default(now())
+
+  question Question @relation(fields: [question_id], references: [id])
+  answers  ResponseAnswer[]
+
+  @@unique([question_id, order_index])
+  @@index([question_id])
+}
+
+model Response {
+  id          String   @id @default(uuid())
+  form_id     String
+  responderId String?
+  publicToken String?
+  created_at  DateTime @default(now())
+
+  form    Form             @relation(fields: [form_id], references: [id])
+  answers ResponseAnswer[]
+
+  @@index([form_id])
+  @@index([publicToken])
+}
+
+model ResponseAnswer {
+  id          String   @id @default(uuid())
+  response_id String
+  question_id String
+  option_id   String?
+  value_text  String?
+
+  response Response        @relation(fields: [response_id], references: [id])
+  question Question        @relation(fields: [question_id], references: [id])
+  option   QuestionOption? @relation(fields: [option_id], references: [id])
+
+  @@unique([response_id, question_id])
+  @@index([question_id])
+}
+</file>
+
+<file path="src/auth/dto/kakao-login.dto.ts">
+import { IsString, IsNotEmpty } from 'class-validator';
+
+export class KakaoLoginDto {
+    @IsString()
+    @IsNotEmpty()
+    code: string;
+}
+</file>
+
+<file path="src/auth/dto/login.dto.ts">
+import { IsEmail, IsString } from 'class-validator';
+
+export class LoginDto {
+    @IsEmail()
+    email: string;
+
+    @IsString()
+    password: string;
+}
+</file>
+
+<file path="src/auth/dto/signup.dto.ts">
+import { IsEmail, IsString, IsOptional, MinLength } from 'class-validator';
+
+export class SignupDto {
+    @IsEmail()
+    email: string;
+
+    @IsString()
+    @MinLength(6)
+    password: string;
+
+    @IsString()
+    @IsOptional()
+    name?: string;
+}
+</file>
+
+<file path="src/auth/guards/jwt-auth.guard.ts">
+import { Injectable } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') { }
+</file>
+
+<file path="src/auth/guards/optional-jwt-auth.guard.ts">
+import { Injectable } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+
+@Injectable()
+export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
+    handleRequest(err: any, user: any) {
+        if (err || !user) {
+            return null;
+        }
+        return user;
+    }
+}
+</file>
+
+<file path="src/auth/strategies/jwt.strategy.ts">
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { ConfigService } from '@nestjs/config';
+
+import { UsersService } from '@/users/users.service';
+
+// JWT payload 최소 형태
+type JwtPayload = { sub: string };
+
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+    constructor(
+        private readonly usersService: UsersService,
+        configService: ConfigService,
+    ) {
+        super({
+            // ✅ Authorization 헤더 ❌
+            // ✅ access_token 쿠키에서 JWT 추출
+            jwtFromRequest: ExtractJwt.fromExtractors([
+                (req) => {
+                    return req?.cookies?.access_token;
+                },
+            ]),
+
+            secretOrKey: configService.get<string>('JWT_SECRET')!,
+            ignoreExpiration: false,
+        });
+    }
+
+    async validate(payload: JwtPayload) {
+        const user = await this.usersService.findById(payload.sub);
+
+        if (!user) {
+            throw new UnauthorizedException();
+        }
+
+        return user; // req.user
+    }
+}
+</file>
+
+<file path="src/auth/auth.controller.ts">
+import {
+    Controller,
+    Post,
+    Get,
+    Body,
+    Req,
+    Res,
+    UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
+
+import { AuthService } from '@/auth/auth.service';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+
+import { SignupDto } from '@/auth/dto/signup.dto';
+import { LoginDto } from '@/auth/dto/login.dto';
+import { KakaoLoginDto } from '@/auth/dto/kakao-login.dto';
+
+@ApiBearerAuth()
+@Controller('auth')
+export class AuthController {
+    constructor(
+        private readonly authService: AuthService,
+    ) { }
+
+    /* =====================
+     * 회원가입
+     * ===================== */
+    @Post('signup')
+    signup(@Body() dto: SignupDto) {
+        return this.authService.signup(dto);
+    }
+
+    /* =====================
+     * LOCAL 로그인
+     * ===================== */
+    @Post('login')
+    async login(
+        @Body() dto: LoginDto,
+        @Res({ passthrough: true }) res: Response,
+    ) {
+        const { accessToken, refreshToken } =
+            await this.authService.login(dto);
+
+        this.setAuthCookies(res, accessToken, refreshToken);
+
+        return { ok: true };
+    }
+
+    /* =====================
+     * KAKAO 로그인
+     * ===================== */
+    @Post('kakao')
+    async kakaoLogin(
+        @Body() dto: KakaoLoginDto,
+        @Res({ passthrough: true }) res: Response,
+    ) {
+        const { accessToken, refreshToken } =
+            await this.authService.kakaoLogin(dto.code);
+
+        this.setAuthCookies(res, accessToken, refreshToken);
+
+        return { ok: true };
+    }
+
+    /* =====================
+     * 토큰 재발급
+     * ===================== */
+    @Post('refresh')
+    async refresh(
+        @Req() req: Request,
+        @Res({ passthrough: true }) res: Response,
+    ) {
+        const refreshToken = req.cookies?.refresh_token;
+
+        const { accessToken, refreshToken: nextRefreshToken } =
+            await this.authService.refresh({ refreshToken });
+
+        this.setAuthCookies(res, accessToken, nextRefreshToken);
+
+        return { ok: true };
+    }
+
+    /* =====================
+     * 로그아웃
+     * ===================== */
+    @Post('logout')
+    async logout(
+        @Req() req: Request,
+        @Res({ passthrough: true }) res: Response,
+    ) {
+        const refreshToken = req.cookies?.refresh_token;
+
+        await this.authService.logout(refreshToken);
+
+        // 쿠키 삭제
+        res.clearCookie('access_token', { path: '/' });
+        res.clearCookie('refresh_token', { path: '/auth/refresh' });
+
+        return { ok: true };
+    }
+
+
+    /* =====================
+     * 내 정보
+     * ===================== */
+    @Get('me')
+    @UseGuards(JwtAuthGuard)
+    me(@Req() req: any) {
+        return req.user;
+    }
+
+    /* =====================
+     * 쿠키 세팅 헬퍼
+     * ===================== */
+    private setAuthCookies(
+        res: Response,
+        accessToken: string,
+        refreshToken: string,
+    ) {
+        res.cookie('access_token', accessToken, {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: false, // prod에서는 true
+            path: '/',
+        });
+
+        res.cookie('refresh_token', refreshToken, {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: false, // prod에서는 true
+            path: '/auth/refresh',
+        });
+    }
+}
+</file>
+
+<file path="src/auth/auth.module.ts">
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
+
+import { AuthController } from '@/auth/auth.controller';
+import { AuthService } from '@/auth/auth.service';
+import { JwtStrategy } from '@/auth/strategies/jwt.strategy';
+
+import { RefreshTokenService } from '@/auth/refresh-token.service';
+import { UsersModule } from '@/users/users.module';
+
+
+@Module({
+    imports: [
+        HttpModule,
+        UsersModule,
+        PassportModule,
+        ConfigModule, // isGlobal 아니면 필수
+
+        JwtModule.registerAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => ({
+                secret: config.get<string>('JWT_SECRET'),
+                signOptions: { expiresIn: '1d' },
+            }),
+        }),
+
+    ],
+    controllers: [AuthController],
+    providers: [AuthService, JwtStrategy, RefreshTokenService],
+})
+export class AuthModule { }
+</file>
+
+<file path="src/auth/auth.service.ts">
+import {
+    Injectable,
+    UnauthorizedException,
+    ConflictException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import * as bcrypt from 'bcrypt';
+
+import { UsersService } from '@/users/users.service';
+import { RefreshTokenService } from '@/auth/refresh-token.service';
+import { AuthProvider, User } from '@prisma/client';
+
+@Injectable()
+export class AuthService {
+    constructor(
+        private readonly usersService: UsersService,
+        private readonly jwtService: JwtService,
+        private readonly http: HttpService,
+        private readonly refreshTokenService: RefreshTokenService,
+    ) { }
+
+    /* =====================
+     * LOCAL 회원가입
+     * ===================== */
+    async signup(params: {
+        email: string;
+        password: string;
+        name?: string;
+    }): Promise<User> {
+        const { email, password, name } = params;
+
+        const exists = await this.usersService.findLocalByEmail(email);
+        if (exists) {
+            throw new ConflictException('이미 존재하는 이메일');
+        }
+
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        return this.usersService.createLocalUser({
+            email,
+            passwordHash,
+            name,
+        });
+    }
+
+    /* =====================
+     * LOCAL 로그인
+     * ===================== */
+    async login(params: {
+        email: string;
+        password: string;
+    }): Promise<{ accessToken: string; refreshToken: string }> {
+        const { email, password } = params;
+
+        const user = await this.usersService.findLocalByEmail(email);
+        if (!user || !user.passwordHash) {
+            throw new UnauthorizedException('이메일 또는 비밀번호 오류');
+        }
+
+        const isValid = await bcrypt.compare(password, user.passwordHash);
+        if (!isValid) {
+            throw new UnauthorizedException('이메일 또는 비밀번호 오류');
+        }
+
+        return this.issueTokens(user);
+    }
+
+    /* =====================
+     * KAKAO 로그인
+     * ===================== */
+    async kakaoLogin(
+        code: string,
+    ): Promise<{ accessToken: string; refreshToken: string }> {
+        // 1. 카카오 토큰 요청
+        const tokenRes = await firstValueFrom(
+            this.http.post(
+                'https://kauth.kakao.com/oauth/token',
+                new URLSearchParams({
+                    grant_type: 'authorization_code',
+                    client_id: process.env.KAKAO_REST_API_KEY!,
+                    redirect_uri: process.env.KAKAO_REDIRECT_URI!,
+                    code,
+                    client_secret: process.env.KAKAO_CLIENT_SECRET!,
+                }),
+                {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                },
+            ),
+        );
+
+        const kakaoAccessToken = tokenRes.data.access_token;
+        if (!kakaoAccessToken) {
+            throw new UnauthorizedException('카카오 토큰 발급 실패');
+        }
+
+        // 2. 카카오 유저 정보 조회
+        const userRes = await firstValueFrom(
+            this.http.get('https://kapi.kakao.com/v2/user/me', {
+                headers: {
+                    Authorization: `Bearer ${kakaoAccessToken}`,
+                },
+            }),
+        );
+
+        const kakaoId = String(userRes.data.id);
+        const email = userRes.data.kakao_account?.email;
+        const name = userRes.data.kakao_account?.profile?.nickname;
+
+        // 3. 유저 조회 / 생성
+        let user = await this.usersService.findByProvider(
+            AuthProvider.KAKAO,
+            kakaoId,
+        );
+
+        if (!user) {
+            user = await this.usersService.createOAuthUser({
+                provider: AuthProvider.KAKAO,
+                providerId: kakaoId,
+                email,
+                name,
+            });
+        }
+
+        return this.issueTokens(user);
+    }
+
+    /* =====================
+     * refresh token 재발급
+     * ===================== */
+    async refresh(params: {
+        refreshToken: string;
+    }): Promise<{ accessToken: string; refreshToken: string }> {
+        const { refreshToken } = params;
+        if (!refreshToken) {
+            throw new UnauthorizedException('refresh token 필요');
+        }
+
+        // 1) refresh 유효성/DB 존재 확인
+        const record = await this.refreshTokenService.validate(refreshToken);
+
+        // 2) rotation: 기존 refresh 폐기
+        await this.refreshTokenService.revoke(refreshToken);
+
+        // 3) 새 토큰들 발급
+        const accessToken = this.issueAccessToken(record.userId);
+        const nextRefreshToken = await this.refreshTokenService.issue(record.userId);
+
+        return { accessToken, refreshToken: nextRefreshToken };
+    }
+
+    /* =====================
+     * 로그아웃
+     * ===================== */
+    async logout(refreshToken?: string): Promise<void> {
+        if (!refreshToken) {
+            return;
+        }
+
+        await this.refreshTokenService.revoke(refreshToken);
+    }
+
+
+    /* =====================
+     * access + refresh 발급
+     * ===================== */
+    private async issueTokens(
+        user: User,
+    ): Promise<{ accessToken: string; refreshToken: string }> {
+        const accessToken = this.issueAccessToken(user.id);
+        const refreshToken = await this.refreshTokenService.issue(user.id);
+
+        return { accessToken, refreshToken };
+    }
+
+    /* =====================
+     * access token
+     * ===================== */
+    private issueAccessToken(userId: string): string {
+        return this.jwtService.sign(
+            { sub: userId },
+            { expiresIn: '15m' },
+        );
+    }
+
+
+
+
+
+}
+</file>
+
+<file path="src/auth/refresh-token.service.ts">
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PrismaService } from '@/common/prisma/prisma.service';
+import { randomBytes, createHash } from 'crypto';
+import dayjs from 'dayjs';
+
+@Injectable()
+export class RefreshTokenService {
+    constructor(
+        private readonly prisma: PrismaService,
+    ) { }
+
+    /* =====================
+     * refresh token 생성
+     * ===================== */
+    generateToken(): string {
+        return randomBytes(64).toString('hex');
+    }
+
+    /* =====================
+     * refresh token 해시
+     * ===================== */
+    hashToken(token: string): string {
+        return createHash('sha256').update(token).digest('hex');
+    }
+
+    /* =====================
+     * refresh token 발급 + 저장
+     * ===================== */
+    async issue(userId: string): Promise<string> {
+        const token = this.generateToken();
+        const tokenHash = this.hashToken(token);
+
+        await this.prisma.refreshToken.create({
+            data: {
+                userId,
+                tokenHash,
+                expiresAt: dayjs().add(14, 'day').toDate(),
+            },
+        });
+
+        return token; // 원문은 여기서만
+    }
+
+    /* =====================
+     * refresh token 검증
+     * ===================== */
+    async validate(token: string) {
+        const tokenHash = this.hashToken(token);
+
+        const record = await this.prisma.refreshToken.findUnique({
+            where: { tokenHash },
+        });
+
+        if (!record) {
+            throw new UnauthorizedException('유효하지 않은 refresh token');
+        }
+
+        if (record.revokedAt) {
+            throw new UnauthorizedException('폐기된 refresh token');
+        }
+
+        if (dayjs(record.expiresAt).isBefore(dayjs())) {
+            throw new UnauthorizedException('만료된 refresh token');
+        }
+
+        return record;
+    }
+
+    /* =====================
+     * refresh token 폐기
+     * ===================== */
+    async revoke(token: string): Promise<void> {
+        const tokenHash = this.hashToken(token);
+
+        await this.prisma.refreshToken.updateMany({
+            where: {
+                tokenHash,
+                revokedAt: null,
+            },
+            data: {
+                revokedAt: new Date(),
+            },
+        });
+    }
+}
+</file>
+
+<file path="src/common/prisma/prisma.module.ts">
+import { Global, Module } from '@nestjs/common';
+import { PrismaService } from './prisma.service';
+
+@Global() // 전역으로 써먹기
+@Module({
+    providers: [PrismaService],
+    exports: [PrismaService],
+})
+export class PrismaModule { }
+</file>
+
+<file path="src/common/prisma/prisma.service.ts">
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+
+@Injectable()
+export class PrismaService
+    extends PrismaClient
+    implements OnModuleInit, OnModuleDestroy {
+    // 앱 시작 시 DB 연결
+    async onModuleInit() {
+        console.log('🟡 Prisma init start');
+        await this.$connect();
+        console.log('🟢 Prisma connected');
+    }
+
+    // 앱 종료 시 DB 연결 해제
+    async onModuleDestroy() {
+        await this.$disconnect();
+    }
+}
+</file>
+
+<file path="src/forms/dto/draft/create-form-draft.dto.ts">
+import {
+    IsArray,
+    IsBoolean,
+    IsEnum,
+    IsNotEmpty,
+    IsOptional,
+    IsString,
+    ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+
+export enum QuestionType {
+    SHORT_TEXT = 'SHORT_TEXT',
+    LONG_TEXT = 'LONG_TEXT',
+    SINGLE_CHOICE = 'SINGLE_CHOICE',
+    MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
+}
+
+class CreateQuestionOptionDto {
+    @IsString()
+    @IsNotEmpty()
+    label: string;
+
+    @IsString()
+    @IsOptional()
+    value?: string;
+}
+
+class CreateQuestionDto {
+    @IsString()
+    @IsNotEmpty()
+    title: string;
+
+    @IsEnum(QuestionType)
+    type: QuestionType;
+
+    @IsBoolean()
+    isRequired: boolean;
+
+    @IsArray()
+    @IsOptional()
+    @ValidateNested({ each: true })
+    @Type(() => CreateQuestionOptionDto)
+    options?: CreateQuestionOptionDto[];
+}
+
+class CreateFormPayloadDto {
+    @IsString()
+    @IsNotEmpty()
+    title: string;
+
+    @IsString()
+    @IsOptional()
+    description?: string;
+}
+
+export class CreateFormDraftDto {
+    @ValidateNested()
+    @Type(() => CreateFormPayloadDto)
+    form: CreateFormPayloadDto;
+
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => CreateQuestionDto)
+    questions: CreateQuestionDto[];
+}
+</file>
+
+<file path="src/forms/dto/draft/create-form-publish.dto.ts">
+import {
+    IsArray,
+    IsBoolean,
+    IsEnum,
+    IsNotEmpty,
+    IsOptional,
+    IsString,
+    ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+
+export enum QuestionType {
+    SHORT_TEXT = 'SHORT_TEXT',
+    LONG_TEXT = 'LONG_TEXT',
+    SINGLE_CHOICE = 'SINGLE_CHOICE',
+    MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
+}
+
+class CreateQuestionOptionDto {
+    @IsString()
+    @IsNotEmpty()
+    label: string;
+
+    @IsString()
+    @IsOptional()
+    value?: string;
+}
+
+class CreateQuestionDto {
+    @IsString()
+    @IsNotEmpty()
+    title: string;
+
+    @IsEnum(QuestionType)
+    type: QuestionType;
+
+    @IsBoolean()
+    isRequired: boolean;
+
+    @IsArray()
+    @IsOptional()
+    @ValidateNested({ each: true })
+    @Type(() => CreateQuestionOptionDto)
+    options?: CreateQuestionOptionDto[];
+}
+
+class CreateFormPayloadDto {
+    @IsString()
+    @IsNotEmpty()
+    title: string;
+
+    @IsString()
+    @IsOptional()
+    description?: string;
+}
+
+export class CreateFormPublishDto {
+    @ValidateNested()
+    @Type(() => CreateFormPayloadDto)
+    form: CreateFormPayloadDto;
+
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => CreateQuestionDto)
+    questions: CreateQuestionDto[];
+}
+</file>
+
+<file path="src/forms/dto/create-form.dto.ts">
+import { IsString, IsOptional, IsNotEmpty } from 'class-validator';
+
+export class CreateFormDto {
+    @IsString()
+    @IsNotEmpty()
+    title: string;
+
+    @IsString()
+    @IsOptional()
+    description?: string;
+}
+</file>
+
+<file path="src/forms/dto/update-form.dto.ts">
+import { IsString, IsOptional } from 'class-validator';
+
+export class UpdateFormDto {
+    @IsString()
+    @IsOptional()
+    title?: string;
+
+    @IsString()
+    @IsOptional()
+    description?: string;
+}
+</file>
+
+<file path="src/forms/forms.controller.ts">
+import {
+    Controller,
+    Post,
+    Get,
+    Patch,
+    Delete,
+    Param,
+    Body,
+    Req,
+    UseGuards,
+    NotFoundException,
+} from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
+
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { FormsService } from '@/forms/forms.service';
+
+import { CreateFormDto } from '@/forms/dto/create-form.dto';
+import { UpdateFormDto } from '@/forms/dto/update-form.dto';
+import { CreateFormDraftDto } from '@/forms/dto/draft/create-form-draft.dto';
+import { CreateFormPublishDto } from '@/forms/dto/draft/create-form-publish.dto';
+
+
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('forms')
+export class FormsController {
+    constructor(private readonly formsService: FormsService) { }
+
+    // 생성
+    @Post()
+    create(@Req() req: Request & { user: { id: string } },
+        @Body() dto: CreateFormDto) {
+        return this.formsService.create(req.user.id, dto);
+    }
+
+    // 조회
+    @Get()
+    findAll(@Req() req: Request & { user: { id: string } }) {
+        return this.formsService.findAll(req.user.id);
+    }
+
+    // 단건 조회
+    @Get(':id')
+    async findOne(@Req() req: Request & { user: { id: string } }, @Param('id') id: string) {
+        const form = await this.formsService.findOne(req.user.id, id);
+        if (!form) throw new NotFoundException('Form not found');
+        return form;
+    }
+
+    // 수정
+    @Patch(':id')
+    async update(
+        @Req() req: Request & { user: { id: string } },
+        @Param('id') id: string,
+        @Body() dto: UpdateFormDto,
+    ) {
+        const result = await this.formsService.update(req.user.id, id, dto);
+        if (result.count === 0) throw new NotFoundException('Form not found');
+        return { success: true };
+    }
+
+    // 삭제 (soft delete)
+    @Delete(':id')
+    async remove(@Req() req: Request & { user: { id: string } }, @Param('id') id: string) {
+        const result = await this.formsService.remove(req.user.id, id);
+        if (result.count === 0) throw new NotFoundException('Form not found');
+        return { success: true };
+    }
+
+    // Draft 저장
+    @Post('draft')
+    createDraft(
+        @Req() req: Request & { user: { id: string } },
+        @Body() dto: CreateFormDraftDto,
+    ) {
+        return this.formsService.createDraftWithQuestions(req.user.id, dto);
+    }
+
+    // Publish 저장
+    @Post('publish')
+    publish(
+        @Req() req: Request & { user: { id: string } },
+        @Body() dto: CreateFormPublishDto,
+    ) {
+        return this.formsService.publishWithQuestions(req.user.id, dto);
+    }
+
+
+}
+</file>
+
+<file path="src/forms/forms.module.ts">
+import { Module } from '@nestjs/common';
+import { FormsController } from '@/forms/forms.controller';
+import { FormsService } from '@/forms/forms.service';
+import { PrismaModule } from '@/common/prisma/prisma.module';
+import { RefreshTokenService } from '@/auth/refresh-token.service';
+
+@Module({
+    imports: [PrismaModule],
+    controllers: [FormsController],
+    providers: [FormsService, RefreshTokenService],
+})
+export class FormsModule { }
+</file>
+
+<file path="src/forms/forms.service.ts">
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "@/common/prisma/prisma.service";
+import { CreateFormDto } from "@/forms/dto/create-form.dto";
+import { UpdateFormDto } from "@/forms/dto/update-form.dto";
+import { CreateFormDraftDto } from "@/forms/dto/draft/create-form-draft.dto";
+import { CreateFormPublishDto } from "@/forms/dto/draft/create-form-publish.dto";
+import { FormStatus } from "@prisma/client";
+
+@Injectable()
+export class FormsService {
+    constructor(private readonly prisma: PrismaService) { }
+
+    // 폼 생성
+    create(userId: string, dto: CreateFormDto) {
+        return this.prisma.form.create({
+            data: {
+                title: dto.title,
+                description: dto.description,
+                owner_id: userId,
+            },
+        });
+    }
+
+    // 폼 조회
+    findAll(userId: string) {
+        return this.prisma.form.findMany({
+            where: {
+                owner_id: userId,
+                is_active: true,
+            },
+            orderBy: {
+                created_at: 'desc',
+            },
+        });
+    }
+
+    // 폼 단건 조회(질문, 옵션 포함)
+    findOne(userId: string, formId: string) {
+        // findUnique 쓰면 권한 조건 못 넣음.
+        // 안 나오면 null 반환 → 컨트롤러에서 처리.
+        return this.prisma.form.findFirst({
+            where: {
+                id: formId,
+                owner_id: userId,
+                is_active: true,
+            },
+            include: {
+                questions: {
+                    orderBy: { order_index: 'asc' },
+                    include: {
+                        options: {
+                            orderBy: { order_index: 'asc' },
+                        },
+                    },
+                },
+            },
+        });
+
+    }
+
+    // 폼 수정
+    update(userId: string, formId: string, dto: UpdateFormDto) {
+        return this.prisma.form.updateMany({
+            where: {
+                id: formId,
+                owner_id: userId,
+                is_active: true,
+            },
+            data: {
+                ...dto,
+            },
+        });
+    }
+
+    // 폼 삭제
+    remove(userId: string, formId: string) {
+        // delete 사용하지 않고 복구 여지 남기기. 
+        return this.prisma.form.updateMany({
+            where: {
+                id: formId,
+                owner_id: userId,
+                is_active: true,
+            },
+            data: {
+                is_active: false,
+            },
+        });
+    }
+
+    // =========================
+    // Draft / Publish
+    // =========================
+    async createDraftWithQuestions(
+        userId: string,
+        dto: CreateFormDraftDto,
+    ) {
+        return this.createFormWithQuestions(
+            userId,
+            dto,
+            FormStatus.DRAFT,
+        );
+    }
+
+    async publishWithQuestions(
+        userId: string,
+        dto: CreateFormPublishDto,
+    ) {
+        return this.createFormWithQuestions(
+            userId,
+            dto,
+            FormStatus.PUBLISHED,
+        );
+    }
+
+    private async createFormWithQuestions(
+        userId: string,
+        dto: CreateFormDraftDto | CreateFormPublishDto,
+        status: FormStatus,
+    ) {
+        const { form, questions } = dto;
+
+        return this.prisma.$transaction(async tx => {
+            // 1. Form 생성
+            const createdForm = await tx.form.create({
+                data: {
+                    title: form.title,
+                    description: form.description,
+                    owner_id: userId,
+                    status,
+                },
+            });
+
+            // 2. Question 생성
+            for (let i = 0; i < questions.length; i++) {
+                const question = questions[i];
+
+                const createdQuestion = await tx.question.create({
+                    data: {
+                        form_id: createdForm.id,
+                        title: question.title,
+                        type: question.type,
+                        is_required: question.isRequired,
+                        order_index: i,
+                    },
+                });
+
+                // 3. Option 생성 (있을 때만)
+                if (question.options?.length) {
+                    await tx.questionOption.createMany({
+                        data: question.options.map((option, idx) => ({
+                            question_id: createdQuestion.id,
+                            label: option.label,
+                            value: option.value,
+                            order_index: idx,
+                        })),
+                    });
+                }
+            }
+
+            return createdForm;
+        });
+    }
+
+
+
+}
+</file>
+
+<file path="src/permissions/permissions.module.ts">
+
+</file>
+
+<file path="src/permissions/permissions.service.ts">
+
+</file>
+
+<file path="src/public-links/public-links.controller.ts">
+
+</file>
+
+<file path="src/public-links/public-links.module.ts">
+
+</file>
+
+<file path="src/question-options/dto/create-question-option.dto.ts">
+import { IsArray, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class CreateOptionItemDto {
+    @IsString()
+    label: string;
+
+    @IsOptional()
+    @IsString()
+    value?: string;
+
+    @IsInt()
+    @Min(0)
+    orderIndex: number;
+}
+
+export class CreateQuestionOptionDto {
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => CreateOptionItemDto)
+    options: CreateOptionItemDto[];
+}
+</file>
+
+<file path="src/question-options/dto/delete-question-option.dto.ts">
+import { IsArray, IsUUID } from 'class-validator';
+
+export class DeleteQuestionOptionDto {
+    @IsArray()
+    @IsUUID('4', { each: true })
+    optionIds: string[];
+}
+</file>
+
+<file path="src/question-options/dto/reorder-question-option.dto.ts">
+import { IsArray, IsUUID } from 'class-validator';
+
+export class ReorderQuestionOptionDto {
+    @IsArray()
+    @IsUUID('4', { each: true })
+    orderedOptionIds: string[];
+}
+</file>
+
+<file path="src/question-options/question-options.controller.ts">
+import { Body, Controller, Delete, Param, Patch, Post } from '@nestjs/common';
+import { QuestionOptionsService } from '@/question-options/question-options.service';
+import { CreateQuestionOptionDto } from '@/question-options/dto/create-question-option.dto';
+import { ReorderQuestionOptionDto } from '@/question-options/dto/reorder-question-option.dto';
+import { DeleteQuestionOptionDto } from '@/question-options/dto/delete-question-option.dto';
+
+@Controller('questions/:questionId/options')
+export class QuestionOptionsController {
+    constructor(private readonly service: QuestionOptionsService) { }
+
+    @Post()
+    create(
+        @Param('questionId') questionId: string,
+        @Body() dto: CreateQuestionOptionDto,
+    ) {
+        return this.service.createOptions(questionId, dto.options);
+    }
+
+    @Patch('reorder')
+    reorder(
+        @Param('questionId') questionId: string,
+        @Body() dto: ReorderQuestionOptionDto,
+    ) {
+        return this.service.reorderOptions(questionId, dto.orderedOptionIds);
+    }
+
+    @Delete()
+    delete(
+        @Param('questionId') questionId: string,
+        @Body() dto: DeleteQuestionOptionDto,
+    ) {
+        return this.service.deleteOptions(questionId, dto.optionIds);
+    }
+}
+</file>
+
+<file path="src/question-options/question-options.module.ts">
+import { Module } from '@nestjs/common';
+import { QuestionOptionsService } from '@/question-options/question-options.service';
+import { QuestionOptionsController } from '@/question-options/question-options.controller';
+import { PrismaModule } from '@/common/prisma/prisma.module';
+
+@Module({
+  imports: [PrismaModule],
+  providers: [QuestionOptionsService],
+  controllers: [QuestionOptionsController],
+})
+export class QuestionOptionsModule { }
+</file>
+
+<file path="src/question-options/question-options.service.ts">
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '@/common/prisma/prisma.service';
+
+
+@Injectable()
+export class QuestionOptionsService {
+    constructor(private readonly prisma: PrismaService) { }
+
+    // 옵션 생성
+    async createOptions(
+        questionId: string,
+        options: {
+            label: string;
+            value?: string;
+            orderIndex: number;
+        }[],
+    ) {
+        if (options.length === 0) return [];
+
+        return this.prisma.$transaction(async (tx) => {
+            // 1. 질문 존재 + 타입 체크
+            const question = await tx.question.findUnique({
+                where: { id: questionId },
+                select: { id: true, type: true },
+            });
+
+            if (!question) {
+                throw new NotFoundException('Question not found');
+            }
+
+            if (!['SINGLE_CHOICE', 'MULTIPLE_CHOICE'].includes(question.type)) {
+                throw new BadRequestException('This question type does not support options');
+            }
+
+            // 2. bulk create
+            await tx.questionOption.createMany({
+                data: options.map((opt) => ({
+                    question_id: questionId,
+                    label: opt.label,
+                    value: opt.value,
+                    order_index: opt.orderIndex,
+                })),
+            });
+
+            // 3. 생성된 옵션 반환
+            return tx.questionOption.findMany({
+                where: { question_id: questionId },
+                orderBy: { order_index: 'asc' },
+            });
+        });
+    }
+
+
+    // 옵션 재정렬
+    async reorderOptions(
+        questionId: string,
+        orderedOptionIds: string[],
+    ) {
+        if (orderedOptionIds.length === 0) return;
+
+        return this.prisma.$transaction(async (tx) => {
+            // 1. 해당 question의 옵션인지 검증
+            const options = await tx.questionOption.findMany({
+                where: {
+                    id: { in: orderedOptionIds },
+                    question_id: questionId,
+                },
+                select: { id: true },
+            });
+
+            if (options.length !== orderedOptionIds.length) {
+                throw new Error('Invalid option ids for this question');
+            }
+
+            // 2. 순서대로 order_index 업데이트
+            const updates = orderedOptionIds.map((id, index) =>
+                tx.questionOption.update({
+                    where: { id },
+                    data: { order_index: index },
+                }),
+            );
+
+            await Promise.all(updates);
+
+            // 3. 최종 상태 반환
+            return tx.questionOption.findMany({
+                where: { question_id: questionId },
+                orderBy: { order_index: 'asc' },
+            });
+        });
+    }
+
+
+    // 옵션 삭제
+    async deleteOptions(
+        questionId: string,
+        optionIds: string[],
+    ) {
+        if (optionIds.length === 0) return;
+
+        return this.prisma.$transaction(async (tx) => {
+            // 1. 해당 question의 옵션인지 검증
+            const options = await tx.questionOption.findMany({
+                where: {
+                    id: { in: optionIds },
+                    question_id: questionId,
+                },
+                select: { id: true },
+            });
+
+            if (options.length !== optionIds.length) {
+                throw new Error('Invalid option ids for this question');
+            }
+
+            // 2. 삭제
+            await tx.questionOption.deleteMany({
+                where: {
+                    id: { in: optionIds },
+                    question_id: questionId,
+                },
+            });
+
+            // 3. 남은 옵션 정렬 재조회
+            return tx.questionOption.findMany({
+                where: { question_id: questionId },
+                orderBy: { order_index: 'asc' },
+            });
+        });
+    }
+
+}
+</file>
+
+<file path="src/questions/dto/create-question.dto.ts">
+import { IsEnum, IsOptional, IsBoolean, IsString, IsNotEmpty } from 'class-validator';
+import { QuestionType } from '@prisma/client';
+
+export class CreateQuestionDto {
+    @IsString()
+    @IsNotEmpty()
+    title: string;
+
+    @IsEnum(QuestionType)
+    type: QuestionType;
+
+    @IsBoolean()
+    @IsOptional()
+    is_required?: boolean;
+}
+</file>
+
+<file path="src/questions/dto/reorder-questions.dto.ts">
+import { ApiProperty } from '@nestjs/swagger';
+import { IsArray, IsUUID } from 'class-validator';
+
+export class ReorderQuestionsDto {
+    @ApiProperty({
+        type: [String],
+        example: [
+            "d4c6893f-12a5-4974-9e59-ce0c29e36d43",
+            "e734dd9c-a144-409f-a3ff-74daa7dece88",
+            "9602fcf0-c74e-4845-92b6-224da3837ee6"
+        ],
+    })
+    @IsArray()
+    @IsUUID('all', { each: true })
+    questionIds: string[];
+}
+</file>
+
+<file path="src/questions/dto/update-question.dto.ts">
+import { IsOptional, IsString, IsBoolean } from 'class-validator';
+
+export class UpdateQuestionDto {
+    @IsString()
+    @IsOptional()
+    title?: string;
+
+    @IsBoolean()
+    @IsOptional()
+    is_required?: boolean;
+}
+</file>
+
+<file path="src/questions/questions.controller.ts">
+import {
+    Controller,
+    Post,
+    Get,
+    Patch,
+    Delete,
+    Param,
+    Body,
+    Req,
+    UseGuards,
+    UsePipes,
+    ValidationPipe,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { QuestionsService } from '@/questions/questions.service';
+
+import { CreateQuestionDto } from '@/questions/dto/create-question.dto';
+import { UpdateQuestionDto } from '@/questions/dto/update-question.dto';
+import { ReorderQuestionsDto } from '@/questions/dto/reorder-questions.dto';
+
+
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('forms/:formId/questions')
+export class QuestionsController {
+    constructor(private readonly questionsService: QuestionsService) { }
+
+    // 질문 생성
+    @Post()
+    create(
+        @Param('formId') formId: string,
+        @Req() req: Request & { user: { id: string } },
+        @Body() dto: CreateQuestionDto,
+    ) {
+        return this.questionsService.create(formId, req.user.id, dto);
+    }
+
+    // 질문들 조회
+    @Get()
+    findAll(
+        @Param('formId') formId: string,
+        @Req() req: Request & { user: { id: string } },
+    ) {
+        return this.questionsService.findAll(formId, req.user.id);
+    }
+
+    // 질문 순서 재배치
+    @Patch('reorder')
+    @UsePipes(
+        new ValidationPipe({
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+        }),
+    )
+    reorder(
+        @Param('formId') formId: string,
+        @Req() req: Request & { user: { id: string } },
+        @Body() dto: ReorderQuestionsDto,
+    ) {
+        return this.questionsService.reorder(
+            formId,
+            req.user.id,
+            dto.questionIds,
+        );
+    }
+    /* NestJS 라우팅 주의사항
+     *
+     * - 정적 라우트(@Patch('reorder'))는
+     *   동적 라우트(@Patch(':id'))보다 반드시 위에 선언해야 한다.
+     *
+     * - 선언 순서가 뒤집히면
+     *   'reorder'가 ':id'로 매칭되어
+     *   의도하지 않은 핸들러(update 등)가 실행된다.
+     *
+     * - 이 경우:
+     *   - 실제 메서드는 호출되지 않음
+     *   - DTO 로그도 찍히지 않음
+     *   - ValidationPipe 에러가 DTO 문제처럼 보임
+     *
+     * - 해결:
+     *   1. 정적 라우트를 위에 배치
+     *   2. 라우트 구조를 파라미터와 겹치지 않게 설계
+     *   3. 라우트 순서 변경 후 서버 재시작 권장
+     */
+
+
+    // 질문 수정
+    @Patch(':id')
+    @ApiParam({
+        name: 'formId',
+        required: true,
+        description: '폼 ID',
+    })
+    @ApiParam({
+        name: 'id',
+        required: true,
+        description: '질문 ID',
+    })
+    update(
+        @Param('id') id: string,
+        @Req() req: Request & { user: { id: string } },
+        @Body() dto: UpdateQuestionDto,
+    ) {
+        return this.questionsService.update(id, req.user.id, dto);
+    }
+
+    // 질문 삭제
+    @Delete(':id')
+    @ApiParam({
+        name: 'formId',
+        required: true,
+        description: '폼 ID',
+    })
+    @ApiParam({
+        name: 'id',
+        required: true,
+        description: '질문 ID',
+    })
+    remove(
+        @Param('id') id: string,
+        @Req() req: Request & { user: { id: string } },
+    ) {
+        return this.questionsService.remove(id, req.user.id);
+    }
+
+
+}
+</file>
+
+<file path="src/questions/questions.module.ts">
+import { Module } from '@nestjs/common';
+import { QuestionsController } from '@/questions/questions.controller';
+import { QuestionsService } from '@/questions/questions.service';
+import { PrismaModule } from '@/common/prisma/prisma.module';
+
+@Module({
+    imports: [PrismaModule],
+    controllers: [QuestionsController],
+    providers: [QuestionsService],
+})
+export class QuestionsModule { }
+</file>
+
+<file path="src/questions/questions.service.ts">
+import { Injectable, ForbiddenException } from '@nestjs/common';
+import { PrismaService } from '@/common/prisma/prisma.service';
+import { QuestionType } from '@prisma/client';
+
+interface CreateQuestionInput {
+  title: string;
+  type: QuestionType;
+  is_required?: boolean;
+}
+
+@Injectable()
+export class QuestionsService {
+  constructor(private readonly prisma: PrismaService) { }
+
+  // 질문들 생성
+  async create(formId: string, userId: string, input: CreateQuestionInput) {
+    // 1. Form 소유자 확인
+    const form = await this.prisma.form.findFirst({
+      where: {
+        id: formId,
+        owner_id: userId,
+        is_active: true,
+      },
+    });
+
+    if (!form) {
+      throw new ForbiddenException('Form not accessible');
+    }
+
+    // 2. order_index 계산 (마지막 + 1)
+    const lastQuestion = await this.prisma.question.findFirst({
+      where: { form_id: formId },
+      orderBy: { order_index: 'desc' },
+    });
+
+    const nextOrderIndex = lastQuestion ? lastQuestion.order_index + 1 : 0;
+
+    // 3. Question 생성
+    return this.prisma.question.create({
+      data: {
+        form_id: formId,
+        title: input.title,
+        type: input.type,
+        is_required: input.is_required ?? false,
+        order_index: nextOrderIndex,
+      },
+    });
+  }
+
+  // 전체 질문 조회
+  async findAll(formId: string, userId: string) {
+    // form 소유자 검증
+    const form = await this.prisma.form.findFirst({
+      where: {
+        id: formId,
+        owner_id: userId,
+        is_active: true,
+      },
+    });
+
+    if (!form) {
+      throw new ForbiddenException('Form not accessible');
+    }
+
+    // 질문 목록 조회
+    return this.prisma.question.findMany({
+      where: {
+        form_id: formId,
+      },
+      orderBy: {
+        order_index: 'asc',
+      },
+    });
+  }
+
+  // 질문 수정
+  async update(
+    questionId: string,
+    userId: string,
+    input: { title?: string; is_required?: boolean },
+  ) {
+    // 질문 + 소유자 검증
+    const question = await this.prisma.question.findFirst({
+      where: {
+        id: questionId,
+        form: {
+          owner_id: userId,
+          is_active: true,
+        },
+      },
+    });
+
+    if (!question) {
+      throw new ForbiddenException('Question not accessible');
+    }
+
+    return this.prisma.question.update({
+      where: { id: questionId },
+      data: {
+        title: input.title,
+        is_required: input.is_required,
+      },
+    });
+  }
+
+  // 질문 삭제(완전)
+  async remove(questionId: string, userId: string) {
+    // 1. 질문 + 소유자 검증
+    const question = await this.prisma.question.findFirst({
+      where: {
+        id: questionId,
+        form: {
+          owner_id: userId,
+          is_active: true,
+        },
+      },
+    });
+
+    if (!question) {
+      throw new ForbiddenException('Question not accessible');
+    }
+
+    const { form_id, order_index } = question;
+
+    // 2. 질문 삭제
+    await this.prisma.question.delete({
+      where: { id: questionId },
+    });
+
+    // 3. 뒤에 있는 질문들 order_index 당기기
+    await this.prisma.question.updateMany({
+      where: {
+        form_id,
+        order_index: { gt: order_index },
+      },
+      data: {
+        order_index: { decrement: 1 },
+      },
+    });
+
+    return { success: true };
+  }
+
+  // 질문 순서 재배치
+  async reorder(
+    formId: string,
+    userId: string,
+    questionIds: string[],
+  ) {
+    // 1. form 소유자 검증
+    const form = await this.prisma.form.findFirst({
+      where: {
+        id: formId,
+        owner_id: userId,
+        is_active: true,
+      },
+    });
+
+    if (!form) {
+      throw new ForbiddenException('Form not accessible');
+    }
+
+    // 2. 트랜잭션으로 순서 재배치
+    await this.prisma.$transaction(
+      questionIds.map((id, index) =>
+        this.prisma.question.update({
+          where: { id },
+          data: { order_index: index },
+        }),
+      ),
+    );
+
+    return { success: true };
+  }
+
+
+
+
+}
+</file>
+
+<file path="src/responses/dto/create-response-answer.dto.ts">
+import { IsString, IsOptional } from 'class-validator';
+
+export class CreateResponseAnswerDto {
+    @IsString()
+    questionId: string;
+
+    @IsOptional()
+    @IsString()
+    valueText?: string;
+
+    @IsOptional()
+    @IsString()
+    optionId?: string;
+}
+</file>
+
+<file path="src/responses/dto/create-response.dto.ts">
+import { IsString, IsOptional, IsArray } from 'class-validator';
+import { CreateResponseAnswerDto } from './create-response-answer.dto';
+
+export class CreateResponseDto {
+    @IsString()
+    formId: string;
+
+    @IsOptional()
+    @IsString()
+    publicToken?: string;
+
+    @IsArray()
+    answers: CreateResponseAnswerDto[];
+}
+</file>
+
+<file path="src/responses/responses.controller.ts">
+import { Controller, Post, UseGuards, Body, Req } from "@nestjs/common";
+import { OptionalJwtAuthGuard } from "@/auth/guards/optional-jwt-auth.guard";
+import { ResponseService } from "@/responses/responses.service";
+import { CreateResponseDto } from "@/responses/dto/create-response.dto";
+
+@Controller('responses')
+export class ResponseController {
+    constructor(
+        private readonly responseService: ResponseService,
+    ) { }
+
+    @Post()
+    @UseGuards(OptionalJwtAuthGuard)
+    async create(@Body() dto: CreateResponseDto, @Req() req: any) {
+        return this.responseService.create(dto, req.user);
+    }
+}
+</file>
+
+<file path="src/responses/responses.module.ts">
+import { Module } from "@nestjs/common";
+import { ResponseController } from "@/responses/responses.controller";
+import { ResponseService } from "@/responses/responses.service";
+
+@Module({
+    controllers: [ResponseController],
+    providers: [ResponseService],
+})
+export class ResponsesModule { }
+</file>
+
+<file path="src/responses/responses.service.ts">
+import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '@/common/prisma/prisma.service';
+import { CreateResponseDto } from '@/responses/dto/create-response.dto';
+import { User } from '@prisma/client';
+
+@Injectable()
+export class ResponseService {
+    constructor(private readonly prisma: PrismaService) { }
+
+    async create(dto: CreateResponseDto, user?: User) {
+        const { formId, publicToken, answers } = dto;
+
+        if (!user && !publicToken) {
+            throw new ForbiddenException();
+        }
+
+        const form = await this.prisma.form.findFirst({
+            where: { id: formId, is_active: true },
+            include: {
+                questions: {
+                    include: { options: true },
+                },
+            },
+        });
+
+        if (!form) throw new NotFoundException();
+
+        // questionId 중복 체크
+        const questionIdSet = new Set(answers.map(a => a.questionId));
+        if (questionIdSet.size !== answers.length) {
+            throw new BadRequestException('duplicate question');
+        }
+
+        // 필수 질문 체크 + 타입 검증
+        for (const q of form.questions) {
+            const answer = answers.find(a => a.questionId === q.id);
+
+            if (q.is_required && !answer) {
+                throw new BadRequestException('required question missing');
+            }
+
+            if (!answer) continue;
+
+            switch (q.type) {
+                case 'SHORT_TEXT':
+                case 'LONG_TEXT':
+                    if (!answer.valueText || answer.optionId) {
+                        throw new BadRequestException('invalid text answer');
+                    }
+                    break;
+
+                case 'SINGLE_CHOICE':
+                case 'MULTIPLE_CHOICE':
+                    if (!answer.optionId || answer.valueText) {
+                        throw new BadRequestException('invalid choice answer');
+                    }
+                    if (!q.options.some(o => o.id === answer.optionId)) {
+                        throw new BadRequestException('option not belongs to question');
+                    }
+                    break;
+            }
+        }
+
+        // 트랜잭션 원자성 보장
+        return this.prisma.$transaction(async tx => {
+            const response = await tx.response.create({
+                data: {
+                    form_id: form.id,
+                    responderId: user?.id ?? null,
+                    publicToken: publicToken ?? null,
+                },
+            });
+
+            for (const a of answers) {
+                await tx.responseAnswer.create({
+                    data: {
+                        response_id: response.id,
+                        question_id: a.questionId,
+                        value_text: a.valueText ?? null,
+                        option_id: a.optionId ?? null,
+                    },
+                });
+            }
+
+            return response.id;
+        });
+    }
+}
+</file>
+
+<file path="src/users/users.controller.ts">
+import { Controller } from '@nestjs/common';
+
+@Controller('users')
+export class UsersController { }
+
+// 'users'는 URL prefix
+</file>
+
+<file path="src/users/users.module.ts">
+import { Module } from '@nestjs/common';
+import { UsersController } from '@/users/users.controller';
+import { UsersService } from '@/users/users.service';
+
+@Module({
+    controllers: [UsersController],
+    providers: [UsersService],
+    exports: [UsersService],
+})
+export class UsersModule { }
+</file>
+
+<file path="src/users/users.service.ts">
+import { Injectable, ConflictException } from '@nestjs/common';
+import { PrismaService } from '@/common/prisma/prisma.service';
+import { AuthProvider, User } from '@prisma/client';
+
+@Injectable()
+export class UsersService {
+    constructor(
+        private readonly prisma: PrismaService,
+    ) { }
+
+    // LOCAL 전용 (이메일 로그인)
+    async findLocalByEmail(email: string): Promise<User | null> {
+        return this.prisma.user.findFirst({
+            where: {
+                email,
+                provider: AuthProvider.LOCAL,
+            },
+        });
+    }
+
+    // OAuth 전용 (provider + providerId)
+    async findByProvider(
+        provider: AuthProvider,
+        providerId: string,
+    ): Promise<User | null> {
+        return this.prisma.user.findUnique({
+            where: {
+                provider_providerId: {
+                    provider,
+                    providerId,
+                },
+            },
+        });
+    }
+
+    async findById(id: string): Promise<User | null> {
+        return this.prisma.user.findUnique({ where: { id } });
+    }
+
+    // LOCAL 회원가입
+    async createLocalUser(params: {
+        email: string;
+        passwordHash: string;
+        name?: string;
+    }): Promise<User> {
+        const { email, passwordHash, name } = params;
+
+        return this.prisma.user.create({
+            data: {
+                email,
+                passwordHash,
+                name,
+                provider: AuthProvider.LOCAL,
+            },
+        });
+    }
+
+    // OAuth 유저 생성 (KAKAO / GOOGLE)
+    async createOAuthUser(params: {
+        provider: AuthProvider;
+        providerId: string;
+        email?: string;
+        name?: string;
+    }): Promise<User> {
+        const { provider, providerId, email, name } = params;
+
+        // email 충돌 검사 (LOCAL 계정 보호)
+        if (email) {
+            const exists = await this.prisma.user.findFirst({
+                where: {
+                    email,
+                    provider: AuthProvider.LOCAL,
+                },
+            });
+
+            if (exists) {
+                throw new ConflictException('이미 LOCAL 계정이 존재함');
+            }
+        }
+
+        return this.prisma.user.create({
+            data: {
+                provider,
+                providerId,
+                email,
+                name,
+            },
+        });
+    }
+}
+</file>
+
+<file path="src/app.module.ts">
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from '@/common/prisma/prisma.module';
+import { AuthModule } from '@/auth/auth.module';
+import { UsersModule } from '@/users/users.module';
+import { FormsModule } from '@/forms/forms.module';
+import { QuestionsModule } from '@/questions/questions.module';
+import { QuestionOptionsModule } from '@/question-options/question-options.module';
+import { ResponsesModule } from '@/responses/responses.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    UsersModule,
+    AuthModule,
+    FormsModule,
+    QuestionsModule,
+    QuestionOptionsModule,
+    ResponsesModule,
+  ],
+})
+export class AppModule { }
+</file>
+
+<file path="src/main.ts">
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
+import { AppModule } from '@/app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  // ✅ cookie parser
+  app.use(cookieParser());
+
+  // ✅ 전역 ValidationPipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  const config = new DocumentBuilder()
+    .setTitle('CRATE API')
+    .setDescription('CRATE Backend API')
+    .setVersion('1.0')
+    .addBearerAuth() // Swagger용, 실제 인증은 쿠키
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api-docs', app, document);
+
+  await app.listen(3000);
+}
+
+bootstrap();
+</file>
+
+<file path="test/app.e2e-spec.ts">
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import { AppModule } from '@/app.module';
+
+describe('AppController (e2e)', () => {
+  let app: INestApplication;
+
+  beforeEach(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+
+  it('/ (GET)', () => {
+    return request(app.getHttpServer())
+      .get('/')
+      .expect(200)
+      .expect('Hello World!');
+  });
+});
+</file>
+
+<file path="test/jest-e2e.json">
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  }
+}
+</file>
+
+<file path=".env.dev">
+
+</file>
+
+<file path=".env.prod">
+
+</file>
+
+<file path=".eslintrc.js">
+module.exports = {
+  root: true,
+  parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint'],
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:prettier/recommended',
+  ],
+  rules: {
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/no-unused-vars': ['error'],
+  },
+};
+</file>
+
+<file path=".gitignore">
+# compiled output
+/dist
+/node_modules
+/build
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+
+# Tests
+/coverage
+/.nyc_output
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# temp directory
+.temp
+.tmp
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# docker volume
+postgres_data/
+
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+/generated/prisma
+</file>
+
+<file path=".prettierrc">
+{
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "semi": true
+}
+</file>
+
+<file path="docker-compose.yml">
+services:
+  postgres:
+    image: postgres:16
+    container_name: crate-postgres
+    environment:
+      POSTGRES_USER: crate
+      POSTGRES_PASSWORD: crate
+      POSTGRES_DB: crate
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+</file>
+
+<file path="nest-cli.json">
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true
+  }
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "crate-backend",
+  "version": "0.0.1",
+  "description": "",
+  "author": "",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:e2e": "jest --config ./test/jest-e2e.json"
+  },
+  "dependencies": {
+    "@nestjs/axios": "^4.0.1",
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/jwt": "^11.0.2",
+    "@nestjs/passport": "^11.0.5",
+    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.2.3",
+    "@prisma/client": "^6.19.1",
+    "bcrypt": "^6.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.3",
+    "cookie-parser": "^1.4.7",
+    "dayjs": "^1.11.19",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "prisma": "^6.19.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.18.0",
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.1",
+    "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.10.7",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/supertest": "^6.0.2",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.2",
+    "globals": "^16.0.0",
+    "jest": "^30.0.0",
+    "prettier": "^3.4.2",
+    "source-map-support": "^0.5.21",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
+    "ts-loader": "^9.5.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node"
+  }
+}
+</file>
+
+<file path="README.md">
+# 📦 CRATE Backend (Dev README)
+
+> **개발 진행용 README**
+> 실무 기준 구조/흐름 정리 문서이며, 포트폴리오용이 아님
+
+---
+
+## 1. 프로젝트 개요
+
+* 서비스명: **CRATE**
+* 성격: **지원서 · 설문 폼 + 평가/선발 플랫폼**
+* 포지션: Google Forms 대체 + 평가/권한/분배 중심
+
+### 핵심 컨셉
+
+* Form → Question → Option → Response → Evaluation
+* 모든 권한 검증은 **서버에서 강제**
+* MVP → 확장 전제 구조
+
+---
+
+## 2. 기술 스택
+
+* Framework: **NestJS (TypeScript)**
+* DB: **PostgreSQL**
+* ORM: **Prisma**
+* Auth: **JWT + RefreshToken + httpOnly Cookie**
+* Infra: 로컬 개발 기준
+
+---
+
+## 3. 아키텍처 원칙
+
+### 3.1 모듈 구조
+
+* 도메인 기준 모듈 분리
+* Controller / Service / Repository(Prisma) 분리
+
+### 3.2 설계 기준
+
+* CRUD보다 **데이터 흐름 우선**
+* Controller는 요청 분해만 담당
+* 비즈니스 로직 · 권한 검증은 **Service 레벨**
+* 순서 변경, 일괄 처리 → **트랜잭션 필수**
+
+---
+
+## 4. 현재 구현 상태 (2025-12 기준)
+
+### ✅ Auth 도메인 (3차 완료)
+
+#### 기능
+
+* LOCAL 로그인 (email + password)
+* KAKAO OAuth 로그인
+* access / refresh 토큰 분리
+* refresh token DB 저장 (해시)
+* refresh token rotation
+* httpOnly 쿠키 기반 인증
+* 쿠키 기반 JwtStrategy
+
+#### 엔드포인트
+
+* `POST /auth/signup`
+* `POST /auth/login`
+* `POST /auth/kakao`
+* `POST /auth/refresh`
+* `POST /auth/logout`
+* `GET /auth/me`
+
+#### 인증 흐름 요약
+
+* 로그인 성공 시 access/refresh 토큰을 **httpOnly 쿠키로 발급**
+* access 만료 시 `/auth/refresh` 호출 → 자동 재발급
+* 로그아웃 시 refresh 폐기 + 쿠키 삭제
+
+---
+
+### ✅ Users / Forms / Questions / QuestionOption
+
+* 기본 CRUD 구현 완료
+* Question 순서(order_index) 관리 포함
+
+---
+
+## 5. 아직 하지 않은 것 (의도적 보류)
+
+* 통계 / 집계
+* 평가 점수 계산
+* 캐싱 / 성능 최적화
+* 복잡한 권한 계층
+* 프론트 편의용 API
+
+---
+
+## 6. 다음 작업 우선순위
+
+1. **Response 도메인**
+
+   * 응답 생성 흐름
+   * 외부 접근(public link) 기준 정의
+
+2. **Public Link**
+
+   * 토큰 기반 외부 접근
+
+3. **Permission / Evaluation**
+
+   * 평가자 권한 모델
+   * 평가 대상 범위 제어
+
+---
+
+## 7. 개발 규칙 요약
+
+* 추측 금지, 항상 DB 기준 설명
+* 필요 없는 컬럼/엔드포인트는 보류
+* 구조 → 흐름 → 코드 순서 고정
+
+---
+
+⚠️ 이 문서는 **개발 진행에 따라 계속 갱신됨**
+</file>
+
+<file path="tsconfig.build.json">
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+}
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolvePackageJsonExports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    },
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false
+  }
+}
+</file>
+
+</files>
