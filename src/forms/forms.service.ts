@@ -17,6 +17,8 @@ export class FormsService {
                 title: dto.title,
                 description: dto.description,
                 owner_id: userId,
+                startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+                endDate: dto.endDate ? new Date(dto.endDate) : undefined,
             },
         });
     }
@@ -126,6 +128,8 @@ export class FormsService {
                     title: form.title,
                     description: form.description,
                     owner_id: userId,
+                    startDate: form.startDate ? new Date(form.startDate) : undefined,
+                    endDate: form.endDate ? new Date(form.endDate) : undefined,
                     status,
                 },
             });
@@ -140,6 +144,7 @@ export class FormsService {
                         title: question.title,
                         type: question.type,
                         is_required: question.isRequired,
+                        weight: question.weight ?? 1,
                         order_index: i,
                     },
                 });

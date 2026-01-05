@@ -59,6 +59,8 @@ model Form {
   title       String
   description String?
   owner_id    String
+  startDate   DateTime?
+  endDate     DateTime?
   status      FormStatus @default(DRAFT)
   is_active   Boolean  @default(true)   // 일단 유지
   created_at  DateTime @default(now())
@@ -76,6 +78,8 @@ enum QuestionType {
   LONG_TEXT
   SINGLE_CHOICE
   MULTIPLE_CHOICE
+  DATE
+  FILE
 }
 
 model Question {
@@ -84,6 +88,7 @@ model Question {
   title       String
   type        QuestionType
   is_required Boolean      @default(false)
+  weight      Int          @default(1)
   order_index Int
   created_at  DateTime     @default(now())
   updated_at  DateTime     @updatedAt

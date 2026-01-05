@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsBoolean, IsString, IsNotEmpty } from 'class-validator';
+import { IsEnum, IsOptional, IsBoolean, IsString, IsNotEmpty, IsInt } from 'class-validator';
 import { QuestionType } from '@prisma/client';
 
 export class CreateQuestionDto {
@@ -12,4 +12,8 @@ export class CreateQuestionDto {
     @IsBoolean()
     @IsOptional()
     is_required?: boolean;
+
+    @IsInt()
+    @IsOptional()
+    weight?: number;
 }

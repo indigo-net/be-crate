@@ -6,6 +6,9 @@ import {
     IsOptional,
     IsString,
     ValidateNested,
+    MaxLength,
+    IsDateString,
+    IsInt,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -14,6 +17,8 @@ export enum QuestionType {
     LONG_TEXT = 'LONG_TEXT',
     SINGLE_CHOICE = 'SINGLE_CHOICE',
     MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
+    DATE = 'DATE',
+    FILE = 'FILE',
 }
 
 class CreateQuestionOptionDto {
@@ -37,6 +42,10 @@ class CreateQuestionDto {
     @IsBoolean()
     isRequired: boolean;
 
+    @IsInt()
+    @IsOptional()
+    weight?: number;
+
     @IsArray()
     @IsOptional()
     @ValidateNested({ each: true })
@@ -47,11 +56,21 @@ class CreateQuestionDto {
 class CreateFormPayloadDto {
     @IsString()
     @IsNotEmpty()
+    @MaxLength(30)
     title: string;
 
     @IsString()
     @IsOptional()
+    @MaxLength(150)
     description?: string;
+
+    @IsDateString()
+    @IsOptional()
+    startDate?: string;
+
+    @IsDateString()
+    @IsOptional()
+    endDate?: string;
 }
 
 export class CreateFormPublishDto {

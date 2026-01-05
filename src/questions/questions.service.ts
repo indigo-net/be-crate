@@ -6,6 +6,7 @@ interface CreateQuestionInput {
   title: string;
   type: QuestionType;
   is_required?: boolean;
+  weight?: number;
 }
 
 @Injectable()
@@ -42,6 +43,7 @@ export class QuestionsService {
         title: input.title,
         type: input.type,
         is_required: input.is_required ?? false,
+        weight: input.weight ?? 1,
         order_index: nextOrderIndex,
       },
     });
@@ -77,7 +79,7 @@ export class QuestionsService {
   async update(
     questionId: string,
     userId: string,
-    input: { title?: string; is_required?: boolean },
+    input: { title?: string; is_required?: boolean; weight?: number },
   ) {
     // 질문 + 소유자 검증
     const question = await this.prisma.question.findFirst({
@@ -99,6 +101,7 @@ export class QuestionsService {
       data: {
         title: input.title,
         is_required: input.is_required,
+        weight: input.weight,
       },
     });
   }

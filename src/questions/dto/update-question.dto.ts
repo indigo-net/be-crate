@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsBoolean, IsInt } from 'class-validator';
 
 export class UpdateQuestionDto {
     @IsString()
@@ -8,4 +8,8 @@ export class UpdateQuestionDto {
     @IsBoolean()
     @IsOptional()
     is_required?: boolean;
+
+    @IsInt()
+    @IsOptional()
+    weight?: number;
 }
