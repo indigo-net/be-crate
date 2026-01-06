@@ -184,6 +184,7 @@ jobs:
       - name: Prepare Swagger UI
         run: |
           mkdir swagger-ui
+          touch swagger-ui/.nojekyll
           cp swagger-spec.json swagger-ui/
           cat <<EOF > swagger-ui/index.html
           <!DOCTYPE html>
