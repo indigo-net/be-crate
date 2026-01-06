@@ -53,7 +53,7 @@ jobs:
                 dom_id: '#swagger-ui',
                 presets: [
                   SwaggerUIBundle.presets.apis,
-                  SwaggerUIBundle.SwaggerUIStandalonePreset
+                  SwaggerUIStandalonePreset
                 ],
                 layout: "StandaloneLayout",
               });
